@@ -1,0 +1,120 @@
+DROP TRIGGER IF EXISTS `student_AFTER_INSERT`;
+DROP TRIGGER IF EXISTS `student_AFTER_UPDATE`;
+DROP TRIGGER IF EXISTS `student_AFTER_DELETE`;
+
+DROP PROCEDURE IF EXISTS `student_UPDATE_REDIS`;
+DROP PROCEDURE IF EXISTS `student_CLEAN_REDIS`;
+DROP PROCEDURE IF EXISTS `student_INIT_REDIS`;
+
+
+DELIMITER $
+
+CREATE TRIGGER `student_AFTER_INSERT` AFTER INSERT ON `student` FOR EACH ROW
+BEGIN
+
+  call student_UPDATE_REDIS(new.Sid, new.Sname, new.Sage, new.Sgen, new.Sdept);
+
+END $
+
+CREATE TRIGGER `student_AFTER_UPDATE` AFTER UPDATE ON `student` FOR EACH ROW
+BEGIN
+
+   call student_CLEAN_REDIS(old.Sid, old.SName);
+   call student_UPDATE_REDIS(new.Sid, new.Sname, new.Sage, new.Sgen, new.Sdept);
+END $
+
+
+CREATE TRIGGER `student_AFTER_DELETE` AFTER DELETE ON `student` FOR EACH ROW
+BEGIN
+  
+  call student_CLEAN_REDIS(old.Sid, old.SName);
+END $
+
+
+CREATE PROCEDURE student_UPDATE_REDIS
+(
+    in id varchar(10),
+    in name varchar(45),
+    in age int,
+    in gen VARCHAR(1),
+    in dept VARCHAR(8)
+) 
+BEGIN
+	SET @tableId = 'student';
+
+    -- 更新缓存
+	SELECT CONCAT_WS('_', @tableId, id) into @NID;
+
+    -- 字段
+	SELECT redis_hset(@NID, 'id', id) INTO @tmp;   
+	SELECT redis_hset(@NID, 'name', name) INTO @tmp;   
+	SELECT redis_hset(@NID, 'age', CAST(age AS CHAR))  INTO @tmp;    
+	SELECT redis_hset(@NID, 'gender', gen)  INTO @tmp;    
+	SELECT redis_hset(@NID, 'department',  dept)  INTO @tmp;  
+
+    -- 索引
+	SELECT redis_set( CONCAT_WS('_', @tableId, name), id) INTO @tmp ;
+
+END $
+
+
+CREATE PROCEDURE student_CLEAN_REDIS
+(
+    in id varchar(10),
+    in name varchar(45)
+) 
+BEGIN
+	SET @tableId = 'student';
+	
+  SELECT redis_del(CONCAT_WS('_', @tableId, id)) INTO @tmp ;   
+  SELECT redis_del(CONCAT_WS('_', @tableId, name)) INTO @tmp ;
+
+END $
+
+
+
+
+CREATE PROCEDURE student_INIT_REDIS()
+COMMENT '将表中的数据全部同步到Redis'
+BEGIN
+	-- 声明局部变量
+	DECLARE done boolean default 0;
+    
+	DECLARE id varchar(10);
+	DECLARE name varchar(45);
+	DECLARE age int;
+	DECLARE gen varchar(1);
+	DECLARE dept varchar(10);
+    
+	-- 声明游标
+	DECLARE records CURSOR
+	FOR
+		SELECT Sid, Sname, Sage, Sgen, Sdept FROM student;
+	
+	-- 声明循环结束条件
+	DECLARE continue handler for sqlstate '02000' SET done = 1;
+	
+    -- 打开游标
+	OPEN records;
+    
+	-- 循环所有行
+	REPEAT
+		-- 获得当前循环的id
+		FETCH records INTO id, name, age, gen, dept;
+		
+        -- 调用另一个存储过程获取结果
+		CALL student_UPDATE_REDIS(id, name, age, gen, dept);
+
+	-- 结束循环
+	UNTIL done END REPEAT;
+	-- 关闭游标
+	CLOSE records;
+	
+	-- 在Redis中，表示该表已经缓存；日期时间数据用T分隔，用空格无法缓存
+	SELECT redis_hset(‘INIT_TABLES’, 'student',  DATE_FORMAT(NOW(), '%Y-%m-%dT%T')) INTO @tmp;  
+	
+	
+	
+END $
+
+DELIMITER ;

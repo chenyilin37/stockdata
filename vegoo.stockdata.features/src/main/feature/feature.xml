@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+
+<features name="${project.artifactId}-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.0.0">
+    <repository>mvn:org.ops4j.pax.jdbc/pax-jdbc-features/1.2.0/xml/features</repository>
+
+    <feature name='stockdata' description='${project.name}' version='${project.version}'>
+        <feature>vegoo-commons</feature>
+        <feature>stockdata-crawler</feature>
+        <feature>stockdata-db</feature>
+    </feature>
+
+    <feature name="vegoo-commons" version="${pom.version}">
+        <feature>spring-jdbc</feature>
+        <feature>spring-tx</feature>
+        
+        <feature>pax-jdbc</feature>
+        <feature>pax-jdbc-config</feature>
+        <feature>pax-jdbc-mysql</feature>
+        <feature>pax-jdbc-pool-c3p0</feature>
+
+        <bundle dependency="true">mvn:redis.clients/jedis/2.9.0</bundle>
+        <bundle dependency="true">mvn:org.apache.commons/commons-pool2/2.4.3</bundle>
+
+        <bundle>mvn:${groupId}/vegoo.commons/${pom.version}</bundle>
+        <bundle>mvn:${groupId}/vegoo.jdbcservice/${pom.version}</bundle>
+        <bundle>mvn:${groupId}/vegoo.redis/${pom.version}</bundle>
+    </feature>
+
+    <feature name="stockdata-crawler" version="${pom.version}">
+        <feature>scr</feature>
+        <feature>scheduler</feature>
+        <feature>eventadmin</feature>
+        <feature>wrap</feature>
+
+        <bundle>wrap:mvn:com.squareup.okhttp3/okhttp/3.11.0$Bundle-SymbolicName=okhttp&amp;Bundle-Version=3.11.0</bundle>
+        <bundle>wrap:mvn:com.squareup.okio/okio/1.14.0$Bundle-SymbolicName=okio&amp;Bundle-Version=1.14.0</bundle>
+        <bundle>wrap:mvn:org.conscrypt/conscrypt-openjdk/1.2.0$Bundle-SymbolicName=conscrypt-openjdk&amp;Bundle-Version=1.2.0</bundle>
+
+        <bundle dependency="true">mvn:com.google.code.gson/gson/2.8.2</bundle>
+        <bundle dependency="true">mvn:com.google.guava/guava/23.0</bundle>
+        <bundle dependency="true">mvn:org.apache.commons/commons-lang3/3.7</bundle>
+
+        <feature>vegoo-commons</feature>
+        <bundle>mvn:${groupId}/vegoo.stockdata.crawler/${pom.version}</bundle>
+    </feature>
+
+    <feature name="stockdata-db" version="${pom.version}">
+        <feature>scr</feature>
+        <feature>eventadmin</feature>
+
+
+        <bundle>mvn:${groupId}/vegoo.stockdata.db/${pom.version}</bundle>
+    </feature>
+
+
+</features>

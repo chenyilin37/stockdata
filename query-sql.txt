@@ -1,0 +1,42 @@
+
+#机构持股，增持、减持分析
+select Scode, sum(ChangeValue)/100000000 cv from jgcc where rdate='2018-06-30' and lx<>6 group by Scode order by cv desc;
+
+select Scode, SUM(IF(rdate='2018-03-31', ChangeValue, 0))/100000000 as Q1,
+                      SUM(IF(rdate='2018-06-30', ChangeValue, 0))/100000000 as Q2
+ from jgcc where rdate>='2018-01-30' and lx<>6 group by Scode order by Q2 desc;
+
+#机构持股，板块分析
+select blkucode, blkname ,sum(ChangeValue)/100000000 v from (
+select j.scode, j.lx, j.ChangeValue, blk.blkucode, blk.blkname from jgcc j 
+  join stocksOfBlock sb on  sb.stockCode = j.scode    
+  join block blk on blk.blkucode=sb.blkUcode
+where j.RDate='2018-06-30') m 
+group by blkucode
+order by v desc
+
+
+机构持股，季报交叉分析
+SELECT SCode,lx,
+              SUM(IF(rdate='2016-03-31', SHAREHDNUM, 0)) as '2016-03-31' ,
+			  SUM(IF(rdate='2016-06-30', SHAREHDNUM, 0)) as '2016-06-30' ,
+              SUM(IF(rdate='2016-09-30', SHAREHDNUM, 0)) as '2016-09-30' ,
+              SUM(IF(rdate='2016-12-31', SHAREHDNUM, 0)) as '2016-12-31' ,
+              SUM(IF(rdate='2017-03-31', SHAREHDNUM, 0)) as '2017-03-31' ,
+			  SUM(IF(rdate='2017-06-30', SHAREHDNUM, 0)) as '2017-06-30' ,
+              SUM(IF(rdate='2017-09-30', SHAREHDNUM, 0)) as '2017-09-30' ,
+              SUM(IF(rdate='2017-12-31', SHAREHDNUM, 0)) as '2017-12-31' ,
+			  SUM(IF(rdate='2018-03-31', SHAREHDNUM, 0)) as '2018-03-31' ,
+			  SUM(IF(rdate='2018-06-30', SHAREHDNUM, 0)) as '2018-06-30' 
+FROM jgcc 
+where  rdate>'2016-01-01' 
+group by  SCode,lx
+order by SCode
+
+#机构持仓明细
+select scode, count(*), sum(Vposition)/100000000 v from jgccmx where rdate='2018-06-30' and shcode in(select shcode from gudong where niu>0) group by scode order by v desc;
+
+牛散历年新进股票
+select * from sdltgd where bz='新进' and SHAREHDTYPE='个人' and SHAREHDCODE in (select shcode from gudong where niu>0) order by rdate,SHAREHDNAME desc;
+
+
