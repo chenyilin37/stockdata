@@ -32,6 +32,9 @@ import com.google.common.base.Strings;
 import vegoo.commons.JsonUtil;
 import vegoo.jdbcservice.JdbcService;
 import vegoo.stockdata.crawler.eastmoney.ReportDataGrabJob;
+import vegoo.stockdata.db.GudongPersistentService;
+import vegoo.stockdata.db.JgccPersistentService;
+import vegoo.stockdata.db.JgccmxPersistentService;
 
 /**
  * 抓取机构持仓
@@ -130,7 +133,11 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 	private static final String TAG_JGLX       = "<JGLX>";
 
     @Reference
-    private JdbcService db;
+    private JgccPersistentService dbJgcc;
+    @Reference
+    private JgccmxPersistentService dbJgccmx;
+    @Reference
+    private GudongPersistentService dbGudong;
 	
 	private String jgccURL ;
 	private String jgccmxURL ;
@@ -195,22 +202,22 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		
 		// 机构类型代码：1-基金 2-QFII 3-社保 4-券商 5-保险 6-信托
 		for(int i=1; i<=6; ++i) {
-			grabJgccDataByLx(i, url, jgccStocks, db);
+			grabJgccDataByLx(i, url, jgccStocks);
 		}
 		
 		// 抓去机构持仓明细
-		grabJgccmxData(reportDate, jgccStocks, db);
+		grabJgccmxData(reportDate, jgccStocks);
 	}
 
 
-	private void grabJgccDataByLx(int jglx, String urlPattern, Set<String> jgccStocks, JdbcService db) {
+	private void grabJgccDataByLx(int jglx, String urlPattern, Set<String> jgccStocks) {
 		String url = urlPattern.replaceAll(TAG_JGLX, String.valueOf(jglx) );
 		
 		int page = 0;
-		while(grabJgccDataByPage(++page, url, jgccStocks, db) > page) ;
+		while(grabJgccDataByPage(++page, url, jgccStocks) > page) ;
 	}
 	
-	private int grabJgccDataByPage(int page, String urlPattern, Set<String> jgccStocks, JdbcService db) {
+	private int grabJgccDataByPage(int page, String urlPattern, Set<String> jgccStocks) {
 		String url = urlPattern.replaceAll(TAG_PAGENO, String.valueOf(page));
 		
 		JgccListDto listDto = requestData(url, JgccListDto.class, "获取机构持仓");
@@ -226,12 +233,12 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		
 		JgccListDataDto dataDto = dataDtos[0];
 		
-		processJgccData(dataDto, jgccStocks, db);
+		processJgccData(dataDto, jgccStocks);
 		
 		return dataDto.getTotalPage();
 	}
 
-	private void processJgccData(JgccListDataDto dataDto, Set<String> jgccStocks, JdbcService db) {
+	private void processJgccData(JgccListDataDto dataDto, Set<String> jgccStocks) {
 		String splitSymbol = dataDto.getSplitSymbol();
 		// 通配符转义
 		if("|".equals(splitSymbol)) {  
@@ -246,11 +253,11 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			if(Strings.isNullOrEmpty(item)) {
 				continue;
 			}
-		    processJgccData(splitSymbol, fieldNames, item.trim(), jgccStocks, db);
+		    processJgccData(splitSymbol, fieldNames, item.trim(), jgccStocks);
 		}
 	}
 
-	private void processJgccData(String splitSymbol, String[] fieldNames, String data, Set<String> jgccStocks, JdbcService db) {
+	private void processJgccData(String splitSymbol, String[] fieldNames, String data, Set<String> jgccStocks) {
 		String[] values = split(data, splitSymbol);
 		
 		if(fieldNames.length != values.length) {
@@ -282,107 +289,55 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		
 		jgccStocks.add(scode.trim());
 		
-		if(existJgccData(scode, reportDate, jglx, db)) {
+		if(dbJgcc.existJgcc(scode, reportDate, jglx)) {
 			return;
 		}
+
+		String cGChange = fieldValues.get(F_CGChange);
 		
-		saveJgccData(fieldValues, db);
-		uodateCalculatedFields(scode, reportDate, jglx, db);
+		double cOUNT = getFieldValue(fieldValues, F_COUNT);
+		double shareHDNum = getFieldValue(fieldValues, F_ShareHDNum);
+		double vPosition =  getFieldValue(fieldValues, F_VPosition);
+		double tabRate = getFieldValue(fieldValues, F_TabRate);
+		double lTZB = getFieldValue(fieldValues, F_LTZB);
+		double shareHDNumChange = getFieldValue(fieldValues, F_ShareHDNumChange);
+		double rateChanges = getFieldValue(fieldValues, F_RateChange);
+		
+		dbJgcc.insertJgcc(scode,reportDate,jglx,cOUNT,cGChange,shareHDNum,vPosition,tabRate,lTZB,shareHDNumChange,rateChanges);
 	}
 
-    private static String SQL_EXIST_JGCC = "select SCode from jgcc where SCode=? and RDate=? and lx=?";
-    private boolean existJgccData(String stkcode, Date rdate, String jglx, JdbcService db) {
-    	try {
-    		String val = db.queryForObject(SQL_EXIST_JGCC, new Object[] {stkcode, rdate, jglx},
-    				new int[] {Types.VARCHAR,Types.DATE, Types.VARCHAR}, String.class);
-		    return  val != null;
-		}catch(EmptyResultDataAccessException e) {
-			return false;
-    	}catch(Exception e) {
-    		logger.error("",e);
-    		return false;
-    	}
-    }
 	
-	private static final String SQL_ADD_JGCC = "insert into jgcc(%s) values (%s)";
-	private static final String[] JGCC_FLDS_DB = {F_SCODE,F_RDATE,F_JGLX, F_COUNT, F_CGChange, F_ShareHDNum,F_VPosition,F_TabRate,F_LTZB,F_ShareHDNumChange,F_RateChange}; //LTZBChange
-	private static final String[] JGCC_FLDS_JS = {F_SCODE,F_RDATE,F_JGLX, F_COUNT, F_CGChange, F_ShareHDNum,F_VPosition,F_TabRate,F_LTZB,F_ShareHDNumChange,F_RateChange}; //LTZBChange
-	private static final int[] JGCC_FLD_Types  = {Types.VARCHAR,Types.VARCHAR, Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR};
-	
-	private void saveJgccData(Map<String, String> fieldValues, JdbcService db) {
-		String fields = StringUtils.join(JGCC_FLDS_DB, ",");
-		
-		StringBuffer sbParams = new StringBuffer();
-		
-		List<Object> prmValues = new ArrayList<>();
-		
-		for(int i=0; i<JGCC_FLDS_JS.length; ++i) {
-			String fld = JGCC_FLDS_JS[i];
-			if(i>0) {
-				sbParams.append(",");
-			}
-			
-			sbParams.append("?");
-			String val = fieldValues.get(fld);
-			if(F_COUNT.equalsIgnoreCase(fld)
-							||F_ShareHDNum.equalsIgnoreCase(fld)
-							||F_VPosition.equalsIgnoreCase(fld)
-						||F_TabRate.equalsIgnoreCase(fld)
-						||F_LTZB.equalsIgnoreCase(fld)
-						||F_ShareHDNumChange.equalsIgnoreCase(fld)
-					||F_RateChange.equalsIgnoreCase(fld)) {
-				try {
-				   Double.parseDouble(val);
-				}catch(Exception e) {
-					val = "0";
-				}
-			}
-			prmValues.add(val);
-		}
-		
-		String sql = String.format(SQL_ADD_JGCC, fields, sbParams);
-		
-		try {
-			db.update(sql, prmValues.toArray(), JGCC_FLD_Types);
-			
-		}catch(Exception e) {
-			logger.error("",e);
-		}
-	}
 
-    private static String SQL_UPD_JGCC = "update jgcc set closeprice=round(vPosition/ShareHDNum, 2), ChangeValue=round(vPosition*ShareHDNumChange/ShareHDNum ,2) where SCode=? and RDate=? and lx=? and ShareHDNum<>0";
-	private void uodateCalculatedFields(String stkcode, Date rdate, String jglx, JdbcService db) {
+	private static double getFieldValue(Map<String, String> fieldValues, String fieldName) {
 		try {
-			db.update(SQL_UPD_JGCC, new Object[] {stkcode, rdate, jglx},
-					new int[] {Types.VARCHAR,Types.DATE, Types.VARCHAR});
+			return Double.parseDouble(fieldValues.get(fieldName));
 		}catch(Exception e) {
-			logger.error("",e);
+			return 0;
 		}
+		
 	}
-	
-	
 
 	/******************************************************************
 	 * 抓去机构持仓明细
 	 *******************************************************************/
-	private void grabJgccmxData(String reportDate, Set<String> stocks, JdbcService db) {
+	private void grabJgccmxData(String reportDate, Set<String> stocks) {
 		String url = jgccmxURL.replaceAll(TAG_REPORTDATE, reportDate);
 
 		for(String stkcode : stocks) {
 			String stkFcode = getStockCodeWithMarketFix(stkcode);
-			grabJgccmxData(url, stkFcode, db);
+			grabJgccmxData(url, stkFcode);
 		}
 		
 	}
 
-	private void grabJgccmxData(String urlPattern, String stkFcode, JdbcService db) {
+	private void grabJgccmxData(String urlPattern, String stkFcode) {
 		String url = urlPattern.replaceAll(TAG_STOCKCODE, stkFcode );
 		
 		int page = 0;
-		while(grabJgccmxDataByPage(++page, url, db) > page) ;
+		while(grabJgccmxDataByPage(++page, url) > page) ;
 	}
 
-	private int grabJgccmxDataByPage(int page, String urlPattern, JdbcService db) {
+	private int grabJgccmxDataByPage(int page, String urlPattern) {
 		String url = urlPattern.replaceAll(TAG_PAGENO, String.valueOf(page));
 		
 		JgccListDto listDto = requestData(url, JgccListDto.class, "获取机构持仓明细");
@@ -398,12 +353,12 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		
 		JgccListDataDto dataDto = dataDtos[0];
 		
-		processJgccmxData(dataDto, db);
+		processJgccmxData(dataDto);
 		
 		return dataDto.getTotalPage();
 	}
 
-	private void processJgccmxData(JgccListDataDto dataDto, JdbcService db) {
+	private void processJgccmxData(JgccListDataDto dataDto) {
 		String splitSymbol = dataDto.getSplitSymbol();
 		// 通配符转义
 		if("|".equals(splitSymbol)) {  
@@ -418,12 +373,12 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			if(Strings.isNullOrEmpty(item)) {
 				continue;
 			}
-		    processJgccmxData(splitSymbol, fieldNames, item.trim(), db);
+		    processJgccmxData(splitSymbol, fieldNames, item.trim());
 		}
 		
 	}
 
-	private void processJgccmxData(String splitSymbol, String[] fieldNames, String data, JdbcService db) {
+	private void processJgccmxData(String splitSymbol, String[] fieldNames, String data) {
 		String[] values = split(data, splitSymbol);
 		
 		if(fieldNames.length != values.length) {
@@ -459,93 +414,30 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			return;
 		}
 		
-		if(existJgccmxData(scode, reportDate, shcode, db)) {
+		if(dbJgccmx.existJgccmx(scode, reportDate, shcode)) {
 			return;
 		}
 		
 		fieldValues.put(F_MX_SCode, scode);  // 用000001代替000001.sz
 		
-		saveJgccmxData(scode, reportDate, shcode, fieldValues, db);	
-		
-		saveJigouData(fieldValues, db);
-	}
-
-
-	private static String SQL_EXIST_JGCCMX = "select SCode from jgccmx where SCode=? and RDate=? and SHCode=?";
-    private boolean existJgccmxData(String scode, Date rdate, String shcode, JdbcService db) {
-    	try {
-    		String val = db.queryForObject(SQL_EXIST_JGCCMX, new Object[] {scode, rdate, shcode},
-    				new int[] {Types.VARCHAR,Types.DATE, Types.VARCHAR}, String.class);
-		    return  val != null;
-		}catch(EmptyResultDataAccessException e) {
-			return false;
-    	}catch(Exception e) {
-    		logger.error("", e);
-    		return false;
-    	}
-    }
-
-
-    //SCode,SName,RDate,SHCode,SHName,IndtCode,InstSName,TypeCode,Type,ShareHDNum,Vposition,TabRate,TabProRate
-	private static final String SQL_ADD_JGCCMX = "insert into jgccmx(%s) values (%s)";
-	private static final String[] MX_FLDS_DB = {"SCode","RDate","SHCode","IndtCode","TypeCode","ShareHDNum","Vposition","TabRate","TabProRate"};
-	private static final String[] MX_FLDS_JSON = {F_MX_SCode,F_MX_RDate,F_MX_SHCode,F_MX_IndtCode,F_MX_TypeCode,F_MX_ShareHDNum,F_MX_Vposition,F_MX_TabRate,F_MX_TabProRate}; 
-	private static final int[] MX_FLD_Types  = {Types.VARCHAR,Types.VARCHAR, Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR};
-	
-	private void saveJgccmxData(String stkcode, Date rdate, String jglx, Map<String, String> fieldValues, JdbcService db) {
-		String db_fields = StringUtils.join(MX_FLDS_DB, ",");
-		
-		StringBuffer sbParams = new StringBuffer();
-		
-		
-		for(int i=0; i<MX_FLDS_DB.length; ++i) {
-			if(i>0) {
-				sbParams.append(",");
-			}
-			
-			sbParams.append("?");
-		}
-		
-		String sql = String.format(SQL_ADD_JGCCMX, db_fields, sbParams);
-
-		List<Object> prmValues = new ArrayList<>();
-		
-		for(String fld: MX_FLDS_JSON) {
-			String val = fieldValues.get(fld);
-			if(F_MX_ShareHDNum.equalsIgnoreCase(fld) || F_MX_Vposition.equalsIgnoreCase(fld)
-				||F_MX_TabRate.equalsIgnoreCase(fld) || F_MX_TabProRate.equalsIgnoreCase(fld) ) {
-				try {
-				   Double.parseDouble(val);
-				}catch(Exception e) {
-					val = "0";
-				}
-			}
-			prmValues.add(val);
-		}
-		
-		try {
-			db.update(sql, prmValues.toArray(), MX_FLD_Types);
-		}catch(Exception e) {
-			logger.error("",e);
-		}
-	}
-
-	/*********************************
-	 * 保存股东信息
-	 * @param fieldValues
-	 */
-    private void saveJigouData(Map<String, String> fieldValues, JdbcService db) {
-    	String SHCode= fieldValues.get(F_MX_SHCode); 
+    	String indtCode = fieldValues.get(F_MX_IndtCode); 
+    	String instSName= fieldValues.get(F_MX_InstSName);
     	String SHName= fieldValues.get(F_MX_SHName); 
     	String gdlx = fieldValues.get(F_MX_Type);
     	String lxdm = fieldValues.get(F_MX_TypeCode);
-    	String indtCode = fieldValues.get(F_MX_IndtCode); 
-    	String instSName= fieldValues.get(F_MX_InstSName);
+
+		double ShareHDNum = getFieldValue(fieldValues, F_MX_ShareHDNum);
+		double Vposition = getFieldValue(fieldValues, F_MX_Vposition);
+		double TabRate = getFieldValue(fieldValues, F_MX_TabRate);
+		double TabProRate = getFieldValue(fieldValues, F_MX_TabProRate);
+		
+		dbJgccmx.insertJgccmx(scode,reportDate,shcode,indtCode,lxdm,ShareHDNum,Vposition,TabRate,TabProRate);	
+		
     	
-    	GudongDataProcessor processor = new GudongDataProcessor(db);
-    	processor.saveGudongData(SHCode, SHName, gdlx, lxdm, indtCode, instSName);
+    	dbGudong.saveGudong(shcode, SHName, gdlx, lxdm, indtCode, instSName);
 
 	}
+
 
 	
 }

@@ -1,7 +1,9 @@
-package vegoo.stockdata.db.impl;
+package vegoo.stockdata.db.block;
 
 import java.sql.Types;
 import java.util.Dictionary;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.osgi.service.cm.ConfigurationException;
@@ -17,44 +19,38 @@ import com.google.common.collect.Sets;
 import vegoo.jdbcservice.JdbcService;
 import vegoo.redis.RedisService;
 import vegoo.stockdata.db.BlockPersistentService;
-import vegoo.stockdata.db.PersistentService;
-import vegoo.stockdata.db.RedisKey;
+import vegoo.stockdata.db.base.PersistentServiceImpl;
+import vegoo.stockdata.db.base.Redis;
 
-@Component (
-		immediate = true, 
-		//configurationPid = "stockdata.persistent",
-		//service = { PersistentService.class,  ManagedService.class}, 
-		property = {
-		    //Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 0 1,18 * * ?", //  静态信息，每天7，8，18抓三次
-		    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
-		} 
-	)
+@Component (immediate = true)
 public class BlockPersistentServiceImpl extends PersistentServiceImpl implements BlockPersistentService, ManagedService {
 	private static final Logger logger = LoggerFactory.getLogger(BlockPersistentServiceImpl.class);
 
-    @Reference
-    volatile private RedisService redis;
+    @Reference private RedisService redis;
 
-    @Reference
-    private JdbcService db;
+    @Reference private JdbcService db;
 	
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
 		logger.info("{} configured.", this.getClass().getName());
 		
+/*		if(redis.hget(Redis.KEY_CACHED_TBLS, Redis.TABLENAME_BLOCK)==null) {
+		   db.execute("call block_INIT_REDIS()");	// 初始化缓存
+		}
+*/
 	}
 	
-	private static String SQL_EXIST_BLKINFO = "select blkUCode from block where blkucode=?";
-    @Override
+   @Override
     public boolean existBlock(String blockUCode) {
-    	return existBlockByRedis(blockUCode);
+    	return existBlockByDB(blockUCode);
     }
     
-    public boolean existBlockByRedis(String blockUCode) {
-    	return redis.sismember(RedisKey.Blocks(), blockUCode);
+/*    private boolean existBlockByRedis(String blockUCode) {
+    	return redis.sismember(Redis.KEY_BLOCKS, blockUCode);
     }
-
-    public boolean existBlockByDB(String blockUCode) {
+*/
+	private static String SQL_EXIST_BLKINFO = "select blkUCode from block where blkucode=?";
+	private boolean existBlockByDB(String blockUCode) {
     	try {
     		String val = db.queryForObject(SQL_EXIST_BLKINFO, new Object[] {blockUCode}, new int[] {Types.VARCHAR}, String.class);
 		    return  val != null;
@@ -87,7 +83,7 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
      	}
 	}
     
-	private static String SQL_INS_STKOFBLK = "insert into stocksOfBlock(blkUcode,stockCode,marketid) values(?,?,?)";
+	private static String SQL_INS_STKOFBLK = "insert into stocksOfBlock(blkUcode,stockCode) values(?,?)";
     @Override
     public void insertStockOfBlock(String blkUcode, String stkCode) {
     	try {
@@ -113,9 +109,9 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
     
 	@Override
 	public void updateStocksOfBlock(String blkUcode, Set<String> newMembers) {
-		String key = RedisKey.StocksOfBlock(blkUcode);
-		Set<String> oldMembers = redis.smembers(key);
-		
+		// String key = Redis.keyStocksOfBlock(blkUcode);
+		// Set<String> oldMembers = redis.smembers(key);
+		Set<String> oldMembers = getStockCodesOfBlock(blkUcode);
 		Set<String> addMembers = Sets.difference(newMembers, oldMembers); // 差集 1中有而2中没有的
 		Set<String> DelMembers = Sets.difference(oldMembers, newMembers); // 差集 1中有而2中没有的
 		
@@ -126,6 +122,21 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
 		for(String stkCode : addMembers) {
 			insertStockOfBlock(blkUcode, stkCode);
 		}
+	}
+	
+	private static final String SQL_SEL_STKC_BLK="select stockCode from stocksOfBlock where blkucode=?";
+	private Set<String> getStockCodesOfBlock(String blkUcode){
+		Set<String> result = new HashSet<>();
+		try {
+			List<String> stockCodes = db.queryForList(SQL_SEL_STKC_BLK, 
+					new Object[] {blkUcode}, 
+					new int[] {Types.VARCHAR}, 
+					String.class);
+			result.addAll(stockCodes);
+		}catch(Exception e) {
+			logger.error("",e);
+		}
+		return result;
 	}
 
 

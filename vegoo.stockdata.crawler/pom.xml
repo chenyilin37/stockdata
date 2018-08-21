@@ -55,10 +55,9 @@
             <artifactId>org.apache.karaf.scheduler.core</artifactId>
             <version>${karaf.version}</version>
         </dependency>
-        
-		<dependency>
+   		<dependency>
 			<groupId>vegoo.newstock</groupId>
-			<artifactId>vegoo.jdbcservice</artifactId>
+			<artifactId>vegoo.stockdata.core</artifactId>
 			<version>${pom.version}</version>
 		</dependency>
 		<dependency>

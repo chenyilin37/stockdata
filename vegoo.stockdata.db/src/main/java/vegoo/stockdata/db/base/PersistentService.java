@@ -1,4 +1,4 @@
-package vegoo.stockdata.db;
+package vegoo.stockdata.db.base;
 
 public interface PersistentService {
 

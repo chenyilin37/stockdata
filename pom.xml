@@ -17,13 +17,13 @@
     </properties>
 
     <modules>
-		<module>vegoo.stockdata.features</module>
-	    <module>vegoo.stockdata.crawler</module>
-	    <module>vegoo.stockdata.db</module>
-	    <module>vegoo.stockdata.core</module>
-	    <module>vegoo.jdbcservice</module>
 	    <module>vegoo.commons</module>
+	    <module>vegoo.jdbcservice</module>
 	    <module>vegoo.redis</module>
+	    <module>vegoo.stockdata.core</module>
+	    <module>vegoo.stockdata.db</module>
+	    <module>vegoo.stockdata.crawler</module>
+		<module>vegoo.stockdata.features</module>
 	</modules>
 
     <dependencies>

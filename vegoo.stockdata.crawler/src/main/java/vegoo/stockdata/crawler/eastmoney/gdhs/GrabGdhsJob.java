@@ -35,8 +35,10 @@ import vegoo.stockdata.crawler.core.HttpClient;
 import vegoo.stockdata.crawler.core.HttpRequestException;
 import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
 import vegoo.stockdata.crawler.eastmoney.ReportDataGrabJob;
-import vegoo.stockdata.crawler.eastmoney.jgcc.GudongDataProcessor;
 import vegoo.stockdata.crawler.eastmoney.jgcc.JgccListDto;
+import vegoo.stockdata.db.GdhsPersistentService;
+import vegoo.stockdata.db.GudongPersistentService;
+import vegoo.stockdata.db.SdltgdPersistentService;
 
 
 /*
@@ -93,8 +95,9 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 	private String latestURL ;
 	private String sdltgdURL ;
 	
-    @Reference
-    private JdbcService db;
+    @Reference private GdhsPersistentService dbGdhs;
+    @Reference private SdltgdPersistentService dbSdltgd;
+    @Reference private GudongPersistentService dbGudong;
 	
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
@@ -157,12 +160,12 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 		Set<String> cacheStocks = new HashSet<>();
 
 		int page = 0;
-		while(grabGdhsData(++page, urlPattern, cacheStocks, db) > page) ;
+		while(grabGdhsData(++page, urlPattern, cacheStocks) > page) ;
 		
-		grabSdltgdData(reportDate, cacheStocks, db);  // 十大流通股东
+		grabSdltgdData(reportDate, cacheStocks);  // 十大流通股东
 	}
 
-	private int grabGdhsData(int page, String urlPattern, Set<String> cacheStocks, JdbcService db) {
+	private int grabGdhsData(int page, String urlPattern, Set<String> cacheStocks) {
 		String url = urlPattern.replaceAll(TAG_PAGENO, String.valueOf(page));
 		
 		GdhsListDto listDto = requestData(url, GdhsListDto.class, "获取股东户数");
@@ -171,92 +174,35 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 			return 0;
 		}
 				
-		saveData(listDto.getData(), cacheStocks, db);
+		saveData(listDto.getData(), cacheStocks);
 		
 		return listDto.getPages();
 	}
 
-	private void saveData(List<GdhsItemDto> items, Set<String> cacheStocks, JdbcService db) {
+	private void saveData(List<GdhsItemDto> items, Set<String> cacheStocks) {
 		for(GdhsItemDto item : items) {
 			cacheStocks.add(item.getSecurityCode());
 			
-			if(existsGDHS(item.getSecurityCode(), item.getEndDate(), db)) {
+			if(dbGdhs.existGDHS(item.getSecurityCode(), item.getEndDate())) {
 				continue;
 			}
 			
-			insertGdhsData(item.getSecurityCode(), item, db);
+			try {
+				dbGdhs.insertGdhs(item.getSecurityCode(), item.getEndDate(), item.getHolderNum(), item.getPreviousHolderNum(), item.getHolderNumChange(), 
+						item.getHolderNumChangeRate(), item.getRangeChangeRate(), item.getPreviousEndDate(), 
+						item.getHolderAvgCapitalisation(), item.getHolderAvgStockQuantity(), item.getTotalCapitalisation(), 
+						item.getCapitalStock(), item.getNoticeDate());
+			}catch(Exception e) {
+				logger.error("保存股东户数数据是出错: {}",JsonUtil.toJson(item), e);
+			}
 		}
 	}
 	
-	private static final String SQL_EXIST_GDHS = "select stockcode from gdhs where stockcode=? and enddate=?";
-	private boolean existsGDHS(String stockCode, Date endDate, JdbcService db) {
-		try {
-			String val = db.queryForObject(SQL_EXIST_GDHS, new Object[] {stockCode, endDate}, 
-					new int[] {Types.VARCHAR, Types.DATE}, String.class);
-		    // logger.info("vvvvv={}", val);
-			return  val != null;
-		}catch(EmptyResultDataAccessException e) {
-			return false;
-		}catch(Exception e) {
-    		logger.error(String.format("stockCode:%s, endDate:%tF%n", stockCode, endDate), e);
-			return false;
-		}
-	}
-
-	private static final String SQL_ADDGDHS = "insert into gdhs(stockCode, EndDate, EndTradeDate, "
-			+"HolderNum,PreviousHolderNum,HolderNumChange,HolderNumChangeRate,RangeChangeRate, "
-			+"PreviousEndDate,HolderAvgCapitalisation,HolderAvgStockQuantity,TotalCapitalisation, "
-			+"CapitalStock,NoticeDate) "         // ,CapitalStockChange,CapitalStockChangeEvent,ClosePrice
-			+"values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"; //,?,?,?
-	private void insertGdhsData(String stockCode, GdhsItemDto item, JdbcService db) {
-		Date endDate = item.getEndDate();
-		if(endDate == null) {
-			return;
-		}
-		// 如果股东户数为0，可能是数据错误，抛弃
-		if(item.getHolderNum()<1) {
-			return;
-		}
-		
-		// 因为enddate有可能不是交易日，或者该股票当日停牌不交易，
-		// 求季报日期endDate对应的在最后一个交易日，以便在指标图上显示
-		Date endTradeDate = getLastTradeDate(endDate, stockCode, db);
-
-		try {
-		  db.update(SQL_ADDGDHS, new Object[] {stockCode, endDate, endTradeDate,
-				item.getHolderNum(), item.getPreviousHolderNum(), item.getHolderNumChange(), 
-				item.getHolderNumChangeRate(), item.getRangeChangeRate(), item.getPreviousEndDate(), 
-				item.getHolderAvgCapitalisation(), item.getHolderAvgStockQuantity(), item.getTotalCapitalisation(), 
-				item.getCapitalStock(), item.getNoticeDate()}, ///*, item.getCapitalStockChange(), item.getCapitalStockChangeEvent(), item.getClosePrice()*/
-				new int[] {Types.VARCHAR, Types.DATE, Types.DATE, Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,
-						   Types.DOUBLE, Types.DOUBLE, Types.DATE,  Types.DOUBLE, Types.DOUBLE, Types.DOUBLE,
-						   Types.DOUBLE,Types.DATE});  ///*,Types.DOUBLE,Types.VARCHAR,Types.DOUBLE*/
-		}catch(Exception e) {
-			logger.error("保存股东户数数据是出错: {}",JsonUtil.toJson(item), e);
-		}
-	}
-
-	/* 因为enddate有可能不是交易日，或者该股票当日停牌不交易，
-	 * 求季报日期endDate对应的在最后一个交易日，以便在指标图上显示
-	 * 
-	 */
-	private static final String QRY_LAST_TRNSDATE="select transDate from kdaydata where scode=? and transDate<=?  order by transDate desc limit 1";
-	private Date getLastTradeDate(Date endDate, String stockCode, JdbcService db) {
-		try {
-			return db.queryForObject(QRY_LAST_TRNSDATE, new Object[] {stockCode, endDate},
-					new int[] {Types.VARCHAR, Types.DATE}, Date.class);
-		}catch(EmptyResultDataAccessException e) {
-			return null;
-		}catch(Exception e) {
-			logger.error("",e);
-			return null;
-		}
-	}
 
 	/*********************************************
 	 * 十大流通股东
 	 *********************************************/
-	private void grabSdltgdData(String reportDate, Set<String> stocks, JdbcService db) {
+	private void grabSdltgdData(String reportDate, Set<String> stocks) {
 		if(Strings.isNullOrEmpty(sdltgdURL)) {
 			logger.error("没有在配置文件中设置{}参数！", PN_URL_T10LTGD);
 			return;
@@ -265,11 +211,11 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 		String url = sdltgdURL.replaceAll(TAG_REPORTDATE, reportDate);
 
 		for(String stkcode : stocks) {
-			grabSdltgdData(url, stkcode, db);
+			grabSdltgdData(url, stkcode);
 		}
 	}
 
-	private void grabSdltgdData(String urlPattern, String stkcode, JdbcService db) {
+	private void grabSdltgdData(String urlPattern, String stkcode) {
 		String url = urlPattern.replaceAll(TAG_STOCKCODE, stkcode );
 
 		SdltgdDto[] listDtos = requestData(url, SdltgdDto[].class, "获取十大流通股东");
@@ -278,63 +224,25 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 		}
 		
 		for(SdltgdDto dto : listDtos) {
-			processSdltgdData(dto, db);
+			processSdltgdData(dto);
 		}
 		
 	}
 
-	private void processSdltgdData(SdltgdDto dto, JdbcService db) {
-		if(existSdltgdData(dto, db)) {
+	private void processSdltgdData(SdltgdDto dto) {
+		if(dbSdltgd.existSdltgd(dto.getSCODE(),dto.getRDATE(),dto.getSHAREHDCODE())) {
 			return;
 		}
-		saveSdltgdData(dto, db);
-		saveGudongData(dto, db);
-	}
-
-	private static String SQL_EXIST_SDLTGD = "select SCode from sdltgd where SCode=? and RDate=? and SHAREHDCODE=?";
-	private boolean existSdltgdData(SdltgdDto dto, JdbcService db) {
-		String scode = dto.getSCODE();
-		Date rdate = dto.getRDATE();
-		String shcode = dto.getSHAREHDCODE();
-		
-    	try {
-    		String val = db.queryForObject(SQL_EXIST_SDLTGD, new Object[] {scode, rdate, shcode},
-    				new int[] {Types.VARCHAR, Types.DATE, Types.VARCHAR}, String.class);
-		    return  val != null;
-		}catch(EmptyResultDataAccessException e) {
-			return false;
-    	}catch(Exception e) {
-    		logger.error("", e);
-    		return false;
-    	}
-	}
-	
-	// SSNAME,SNAME
-	private static String SQL_ADD_SDLTGD = "insert into sdltgd(COMPANYCODE,SHAREHDNAME,SHAREHDTYPE,SHARESTYPE,"
-	         +"RANK,SCODE,RDATE,SHAREHDNUM,LTAG,ZB,NDATE,BZ,BDBL,SHAREHDCODE,SHAREHDRATIO,BDSUM)"
-			 + " values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-	private void saveSdltgdData(SdltgdDto dto, JdbcService db) {
 		try {
-			db.update(SQL_ADD_SDLTGD, new Object[] {dto.getCOMPANYCODE(), dto.getSHAREHDNAME(),
+			dbSdltgd.insertSdltgd(dto.getCOMPANYCODE(), dto.getSHAREHDNAME(),
 					dto.getSHAREHDTYPE(), dto.getSHARESTYPE(), dto.getRANK(), dto.getSCODE(), 
 					dto.getRDATE(), dto.getSHAREHDNUM(), dto.getLTAG(), dto.getZB(),dto.getNDATE(),
-					dto.getBZ(),dto.getBDBL(),dto.getSHAREHDCODE(),dto.getSHAREHDRATIO(),dto.getBDSUM()},
-					new int[] {Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.DOUBLE,
-							Types.VARCHAR,Types.DATE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,
-							Types.DATE,Types.VARCHAR,Types.DOUBLE,Types.VARCHAR,Types.DOUBLE,Types.DOUBLE});
+					dto.getBZ(),dto.getBDBL(),dto.getSHAREHDCODE(),dto.getSHAREHDRATIO(),dto.getBDSUM());
+			dbGudong.saveGudong(dto.getSHAREHDCODE(),dto.getSHAREHDNAME(),dto.getSHAREHDTYPE());
 		}catch(Exception e) {
 			logger.error("保存十大流通股东数据是出错: {}",JsonUtil.toJson(dto), e);
 			
 		}
-	}
-	
-	private void saveGudongData(SdltgdDto dto, JdbcService db) {
-		String SHCode = dto.getSHAREHDCODE();
-		String SHName = dto.getSHAREHDNAME();
-		String gdlx = dto.getSHAREHDTYPE();
-		
-		GudongDataProcessor gdProcessor = new GudongDataProcessor(db);
-		gdProcessor.saveGudongData(SHCode, SHName, gdlx, null, null, null);
 	}
 
 	

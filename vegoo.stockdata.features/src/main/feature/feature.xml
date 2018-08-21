@@ -41,6 +41,14 @@
         <bundle>mvn:${groupId}/vegoo.jdbcservice/${pom.version}</bundle>
         <bundle>mvn:${groupId}/vegoo.redis/${pom.version}</bundle>
     </feature>
+    <feature name="stockdata-db" version="${pom.version}">
+        <feature>scr</feature>
+        <feature>eventadmin</feature>
+
+        <feature>vegoo-commons</feature>
+        <bundle>mvn:${groupId}/vegoo.stockdata.core/${pom.version}</bundle>
+        <bundle>mvn:${groupId}/vegoo.stockdata.db/${pom.version}</bundle>
+    </feature>
 
     <feature name="stockdata-crawler" version="${pom.version}">
         <feature>scr</feature>
@@ -56,17 +64,10 @@
         <bundle dependency="true">mvn:com.google.guava/guava/23.0</bundle>
         <bundle dependency="true">mvn:org.apache.commons/commons-lang3/3.7</bundle>
 
-        <feature>vegoo-commons</feature>
+        <feature>stockdata-db</feature>
         <bundle>mvn:${groupId}/vegoo.stockdata.crawler/${pom.version}</bundle>
     </feature>
 
-    <feature name="stockdata-db" version="${pom.version}">
-        <feature>scr</feature>
-        <feature>eventadmin</feature>
-
-
-        <bundle>mvn:${groupId}/vegoo.stockdata.db/${pom.version}</bundle>
-    </feature>
 
 
 </features>

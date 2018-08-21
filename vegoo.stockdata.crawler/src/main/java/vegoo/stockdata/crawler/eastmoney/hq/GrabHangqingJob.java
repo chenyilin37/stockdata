@@ -28,7 +28,11 @@ import com.google.common.base.Strings;
 
 import vegoo.commons.JsonUtil;
 import vegoo.jdbcservice.JdbcService;
+import vegoo.stockdata.core.model.KDayDao;
+import vegoo.stockdata.core.model.StockCapital;
 import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
+import vegoo.stockdata.db.HQPersistentService;
+import vegoo.stockdata.db.StockPersistentService;
 
 
 @Component (
@@ -51,7 +55,9 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 	private String urlKday;
 	
     @Reference
-    private JdbcService db;
+    private StockPersistentService dbStock;
+    @Reference
+    private HQPersistentService dbHQ;
 
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
@@ -81,7 +87,7 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 		}
 		
 		
-		List<String> stockCodes = queryAllStockCodes(db);
+		List<String> stockCodes = dbStock.queryAllStockCodes();
 		if(stockCodes==null) {
 			return;
 		}
@@ -92,7 +98,7 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 	private void grabHistoryKDay(List<String> stockCodes) {
 		Date curTransDate = getLastTransDate(true);
 		for(String stkcode : stockCodes) {
-			Date lastDate = getLastDateOfKDay(stkcode);
+			Date lastDate = dbHQ.getLastTradeDate(stkcode);
 			
 			if(curTransDate.equals(lastDate)) {
 				continue;
@@ -106,17 +112,6 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 		}
 	}
 
-	private static final String SQL_EXIST_HISTKDAY = "select transDate from kdaydata where scode=? order by transDate desc limit 1";
-	private Date getLastDateOfKDay(String stkcode) {
-		try {
-			return db.queryForObject(SQL_EXIST_HISTKDAY, new Object[] {stkcode}, new int[] {Types.VARCHAR}, Date.class);
-		}catch(EmptyResultDataAccessException e) {
-			return null;
-		}catch(Exception e) {
-			logger.error("",e);
-		    return null;
-		}
-	}
 
 	private void grabHistoryKDay(String stkcode, Date lastDate) {
 		String stkUCode = getStockCodeWithMarketId(stkcode);
@@ -145,73 +140,23 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 		}
 		
 		for(StockKDayFlowDto dto: flows) {
-			if(existStockCapital(stkcode,dto)) {
+			if(dbStock.existStockCapital(stkcode, dto.getTime())) {
 				continue;
 			}
-			saveStockCapital(stkcode, dto);
+			StockCapital dao = new StockCapital(stkcode, dto.getTime(), dto.getLtg());
+			dbStock.insertStockCapital(dao);
 		}
 	}
 
-	private static final String QRY_EXIST_STKFLW="select 1 from stockCapital where stockCode=? and rdate=?";
-	private boolean existStockCapital(String stkcode, StockKDayFlowDto dto) {
-    	try {
-    		Integer val = db.queryForObject(QRY_EXIST_STKFLW, new Object[] {stkcode, dto.getTime()},
-    				new int[] {Types.VARCHAR,Types.DATE}, Integer.class);
-		    return  val != null;
-		}catch(EmptyResultDataAccessException e) {
-			return false;
-    	}catch(Exception e) {
-    		logger.error("", e);
-    		return false;
-    	}
-	}
-
-	private static final String UPD_STKFLW="insert into stockCapital(stockCode,rdate,ltg) values(?,?,?)";
-	private void saveStockCapital(String stkcode, StockKDayFlowDto dto) {
-		try {
-			db.update(UPD_STKFLW, new Object[] {stkcode, dto.getTime(), dto.getLtg()},
-					              new int[] {Types.VARCHAR,Types.DATE, Types.DOUBLE});
-		}catch(Exception e) {
-    		logger.error("", e);
-		}
-		
-	}
-
-	private static final String SQL_BUDP_KDAY = "insert into kdaydata(SCode,transDate,open,close,high,low,volume,amount,amplitude,turnoverRate,changeRate,LClose) values(?,?,?,?,?,?,?,?,?,?,?,?)";
 	private void saveHistoryKDayData(String url,String stkcode, StockKDayDto kDto, Date lastDate) {
 		List<KDayDao> newItems = getNewKDayData(url,stkcode, kDto, lastDate);
 		
 		if(newItems==null || newItems.isEmpty()) {
 			return;
 		}
+		dbHQ.saveKDayData(newItems);
 		
-		db.batchUpdate(SQL_BUDP_KDAY, new BatchPreparedStatementSetter(){
 
-			@Override
-			public int getBatchSize() {
-				return newItems.size();
-			}
-
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				KDayDao item = newItems.get(i);
-				
-				// logger.info(JsonUtil.toJson(item));
-				
-				ps.setString(1, item.getSCode());
-				ps.setDate(2, new java.sql.Date(item.getTransDate().getTime()));
-				ps.setDouble(3, item.getOpen());
-				ps.setDouble(4, item.getClose());
-				ps.setDouble(5, item.getHigh());
-				ps.setDouble(6, item.getLow());
-				ps.setDouble(7, item.getVolume());
-				ps.setDouble(8, item.getAmount());
-				ps.setDouble(9, item.getAmplitude());
-				ps.setDouble(10, item.getTurnoverRate());
-				ps.setDouble(11, item.getChangeRate());
-				ps.setDouble(12, item.getLClose());
-				
-			}});
 	}
 
 	/*

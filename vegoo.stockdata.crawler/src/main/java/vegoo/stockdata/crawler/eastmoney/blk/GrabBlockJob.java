@@ -1,21 +1,11 @@
 package vegoo.stockdata.crawler.eastmoney.blk;
 
 
-import java.beans.PropertyVetoException;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Dictionary;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import javax.sql.DataSource;
 
 import org.apache.karaf.scheduler.Job;
 import org.apache.karaf.scheduler.JobContext;
@@ -24,22 +14,13 @@ import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.EmptyResultDataAccessException;
 
 import com.google.common.base.Strings;
 
-import vegoo.commons.JsonUtil;
-import vegoo.jdbcservice.JdbcService;
-
-import vegoo.redis.RedisService;
-import vegoo.stockdata.crawler.core.HttpRequestException;
 import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
-import vegoo.stockdata.crawler.eastmoney.gdhs.GdhsListDto;
 import vegoo.stockdata.db.BlockPersistentService;
-import vegoo.stockdata.db.PersistentService;
 
 
 /*

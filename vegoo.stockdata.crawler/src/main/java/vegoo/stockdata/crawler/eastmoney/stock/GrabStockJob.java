@@ -25,6 +25,7 @@ import vegoo.jdbcservice.JdbcService;
 import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
 import vegoo.stockdata.crawler.eastmoney.blk.BlockInfoDto;
 import vegoo.stockdata.crawler.eastmoney.blk.GrabBlockJob;
+import vegoo.stockdata.db.StockPersistentService;
 
 @Component (
 		immediate = true, 
@@ -44,7 +45,7 @@ public class GrabStockJob extends BaseGrabJob implements Job, ManagedService{
 	private String urlStock;
 	
     @Reference
-    private JdbcService db;
+    private StockPersistentService dbStock;
 	
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
@@ -97,36 +98,12 @@ public class GrabStockJob extends BaseGrabJob implements Job, ManagedService{
 	}
 
 	private void saveStockData(String marketid, String stkCode, String stkName, String stkUCode) {
-		if(existStock(stkCode)) {
+		if(dbStock.existStock(stkCode)) {
 			return;
 		}
 		
-		insertStockData(marketid, stkCode, stkName, stkUCode);
+		dbStock.insertStock(marketid, stkCode, stkName, stkUCode);
 	}
 
-    private static String SQL_EXIST_STK = "select 1 from stock where stockCode=?";
-    private boolean existStock(String stkCode) {
-    	try {
-    		Integer val = db.queryForObject(SQL_EXIST_STK, new Object[] {stkCode}, new int[] {Types.VARCHAR}, Integer.class);
-    		return  val !=null;
-		}catch(EmptyResultDataAccessException e) {
-			return false;
-    	}catch(Exception e) {
-    		logger.error("", e);
-    		return false;
-    	}
-    }
-
-	private static String SQL_NEW_STK = "insert into stock(marketid,stockCode,stockName,stockUcode,isNew) values (?,?,?,?,?)";
-    private void insertStockData(String marketid, String stkCode, String stkName, String stkUCode) {
-    	boolean isNew = stkName.startsWith("N");
-    	try {
-    	   db.update(SQL_NEW_STK, new Object[] {marketid, stkCode, stkName, stkUCode, (isNew?1:0)}, 
-    			   new int[]{Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.INTEGER});
-    	}catch(Exception e) {
-    		logger.error("插入stock记录出错：{}.{}.{}.{}/{}", marketid, stkCode, stkName, stkUCode, isNew);
-    		logger.error("", e);
-    	}
-    }
 
 }

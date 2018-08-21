@@ -1,13 +1,10 @@
-package vegoo.stockdata.crawler.tdx;
+package vegoo.stockdata.export;
 
 import java.io.File;
-import java.io.IOException;
 import java.sql.Types;
 import java.util.Date;
 import java.util.Dictionary;
 import java.util.List;
-
-import javax.sql.DataSource;
 
 import org.apache.karaf.scheduler.Job;
 import org.apache.karaf.scheduler.JobContext;
@@ -16,15 +13,12 @@ import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
 import vegoo.jdbcservice.JdbcService;
-import vegoo.stockdata.crawler.core.BaseJob;
-import vegoo.stockdata.crawler.process.ProcessDataJob;
 
 @Component (
 		immediate = true, 
@@ -38,8 +32,7 @@ public class CreateTdxDataJob extends ExportDataJob implements Job, ManagedServi
 
 	private static final String PN_ROOTPATH = "datafile-rootpath";
 	
-    @Reference
-    private JdbcService db;
+    @Reference private JdbcService db;
 
 	private String rootPath ="tdx-data";
 	

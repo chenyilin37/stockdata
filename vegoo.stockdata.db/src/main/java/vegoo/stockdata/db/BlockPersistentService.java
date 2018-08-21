@@ -2,6 +2,8 @@ package vegoo.stockdata.db;
 
 import java.util.Set;
 
+import vegoo.stockdata.db.base.PersistentService;
+
 public interface BlockPersistentService extends PersistentService{
 
 	boolean existBlock(String blockUCode);

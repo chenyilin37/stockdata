@@ -31,7 +31,7 @@ import com.google.common.base.Strings;
 
 import vegoo.commons.JsonUtil;
 import vegoo.commons.MyThreadPoolExecutor;
-import vegoo.stockdata.crawler.core.BaseJob;
+import vegoo.stockdata.core.BaseJob;
 import vegoo.stockdata.crawler.core.HttpClient;
 import vegoo.stockdata.crawler.core.HttpRequestException;
 

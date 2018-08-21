@@ -1,10 +1,8 @@
-package vegoo.stockdata.crawler.core;
+package vegoo.stockdata.core;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -14,9 +12,8 @@ import org.apache.karaf.scheduler.JobContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import vegoo.commons.JsonUtil;
 import vegoo.commons.MyThreadPoolExecutor;
-import vegoo.jdbcservice.JdbcService;
+
 /*  log4j参数
 #自定义样式   
 #%c	输出所属的类目，通常就是所在类的全名 
@@ -204,15 +201,6 @@ public abstract class BaseJob {
 		return false;
 	}
 	
-	private static final String QRY_STKS = "SELECT stockCode FROM stock";
-	protected static List<String> queryAllStockCodes(JdbcService db) {
-		try {
-			return db.queryForList(QRY_STKS, String.class);
-		}catch(Exception e) {
-			logger.error("", e);
-			return new ArrayList<>();
-		}
-	}
 	
 	
 /*

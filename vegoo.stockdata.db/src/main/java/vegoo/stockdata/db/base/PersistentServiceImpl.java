@@ -1,4 +1,4 @@
-package vegoo.stockdata.db.impl;
+package vegoo.stockdata.db.base;
 
 import java.beans.PropertyVetoException;
 import java.util.Dictionary;
@@ -13,8 +13,7 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 
 import vegoo.jdbcservice.JdbcService;
 import vegoo.redis.RedisService;
-import vegoo.stockdata.db.PersistentService;
 
-public class PersistentServiceImpl{
+public abstract class PersistentServiceImpl{
 
 }

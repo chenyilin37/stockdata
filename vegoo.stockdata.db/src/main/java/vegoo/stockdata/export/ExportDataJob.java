@@ -1,11 +1,13 @@
-package vegoo.stockdata.crawler.tdx;
+package vegoo.stockdata.export;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 
-import vegoo.stockdata.crawler.core.BaseJob;
+import vegoo.stockdata.core.BaseJob;
+
+
 
 public abstract class ExportDataJob extends BaseJob {
 

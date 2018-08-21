@@ -1,4 +1,4 @@
-package vegoo.stockdata.crawler.process;
+package vegoo.stockdata.process;
 
 import java.math.BigDecimal;
 import java.sql.Types;
@@ -8,8 +8,6 @@ import java.util.Dictionary;
 import java.util.List;
 import java.util.Map;
 
-import javax.sql.DataSource;
-
 import org.apache.karaf.scheduler.Job;
 import org.apache.karaf.scheduler.JobContext;
 import org.apache.karaf.scheduler.Scheduler;
@@ -17,13 +15,13 @@ import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import vegoo.jdbcservice.JdbcService;
-import vegoo.stockdata.crawler.core.BaseJob;
+import vegoo.stockdata.core.BaseJob;
+
 
 @Component (
 		immediate = true, 
@@ -35,8 +33,7 @@ import vegoo.stockdata.crawler.core.BaseJob;
 public class ProcessDataJob extends BaseJob implements Job, ManagedService{
 	private static final Logger logger = LoggerFactory.getLogger(ProcessDataJob.class);
 
-    @Reference
-    private JdbcService db;
+    @Reference private JdbcService db;
 
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
