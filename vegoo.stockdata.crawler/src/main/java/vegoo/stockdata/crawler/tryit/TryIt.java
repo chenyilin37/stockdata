@@ -7,7 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import vegoo.commons.JsonUtil;
 import vegoo.stockdata.crawler.eastmoney.gdhs.GdhsItemDto;
-import vegoo.stockdata.crawler.eastmoney.gdhs.SdltgdDto;
+import vegoo.stockdata.crawler.eastmoney.jgcc.SdltgdDto;
 
 public class TryIt {
 

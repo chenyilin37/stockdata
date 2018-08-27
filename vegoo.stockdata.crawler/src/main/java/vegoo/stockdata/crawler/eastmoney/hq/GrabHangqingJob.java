@@ -1,15 +1,10 @@
 package vegoo.stockdata.crawler.eastmoney.hq;
 
-import java.beans.PropertyVetoException;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Dictionary;
 import java.util.List;
-
-import javax.sql.DataSource;
+import java.util.concurrent.Future;
 
 import org.apache.karaf.scheduler.Job;
 import org.apache.karaf.scheduler.JobContext;
@@ -18,18 +13,15 @@ import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 
 import com.google.common.base.Strings;
 
 import vegoo.commons.JsonUtil;
-import vegoo.jdbcservice.JdbcService;
 import vegoo.stockdata.core.model.KDayDao;
 import vegoo.stockdata.core.model.StockCapital;
+import vegoo.stockdata.core.utils.StockUtil;
 import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
 import vegoo.stockdata.db.HQPersistentService;
 import vegoo.stockdata.db.StockPersistentService;
@@ -47,11 +39,11 @@ import vegoo.stockdata.db.StockPersistentService;
 public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 	private static final Logger logger = LoggerFactory.getLogger(GrabHangqingJob.class);
 
-	static final String PN_URL_LIVEDATA   = "url-livedata";
+	//static final String PN_URL_LIVEDATA   = "url-livedata";
 	static final String PN_URL_KDAY   = "url-kday";
 	static final String PN_URL_MLINE   = "url-mline";
 	
-	private String urlLivedata;
+	//private String urlLivedata;
 	private String urlKday;
 	
     @Reference
@@ -59,44 +51,57 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
     @Reference
     private HQPersistentService dbHQ;
 
-	@Override
+    private Future<?> futureGrabbing;
+    @Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
-		this.urlLivedata = (String) properties.get(PN_URL_LIVEDATA);
+		//this.urlLivedata = (String) properties.get(PN_URL_LIVEDATA);
 		this.urlKday = (String) properties.get(PN_URL_KDAY);
 
-		logger.info("{} = {}", PN_URL_LIVEDATA, urlLivedata);
+		//logger.info("{} = {}", PN_URL_LIVEDATA, urlLivedata);
 		logger.info("{} = {}", PN_URL_KDAY, urlKday);
 
-		grabHistoryKDay();
+		futureGrabbing = asyncExecute(new Runnable() {
+			@Override
+			public void run() {
+				try {
+				   grabHistoryKDay();
+				}finally {
+					futureGrabbing = null;
+				}
+			}});
 	}
 
 	@Override
 	protected void executeJob(JobContext context) {
-		if(Strings.isNullOrEmpty(urlLivedata)) {
-			logger.error("没有在配置文件中设置{}参数！", PN_URL_LIVEDATA);
-			return;
+		if(futureGrabbing != null) {
+			if(futureGrabbing.isDone() || futureGrabbing.isCancelled()) {
+			  futureGrabbing = null;
+			}else {
+			  return;
+			}
 		}
 		
-		// liveUpdate();
+		grabHistoryKDay();
 	}
 	
 	private void grabHistoryKDay() {
+		
 		if(Strings.isNullOrEmpty(urlKday)) {
 			logger.error("没有在配置文件中设置{}参数！", PN_URL_KDAY);
 			return;
 		}
 		
-		
-		List<String> stockCodes = dbStock.queryAllStockCodes();
-		if(stockCodes==null) {
+		List<String> stockCodes = dbStock.getAllStockCodes();
+		if(stockCodes==null || stockCodes.isEmpty()) {
 			return;
 		}
+		
 		grabHistoryKDay(stockCodes);
 	}
- 	
 
+	
 	private void grabHistoryKDay(List<String> stockCodes) {
-		Date curTransDate = getLastTransDate(true);
+		Date curTransDate = StockUtil.getLastTransDate(true);
 		for(String stkcode : stockCodes) {
 			Date lastDate = dbHQ.getLastTradeDate(stkcode);
 			
@@ -104,11 +109,7 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 				continue;
 			}
 			
-			asyncExecute(new Runnable() {
-				@Override
-				public void run() {
-					grabHistoryKDay(stkcode, lastDate);
-				}});
+			grabHistoryKDay(stkcode, lastDate);
 		}
 	}
 
@@ -155,8 +156,6 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 			return;
 		}
 		dbHQ.saveKDayData(newItems);
-		
-
 	}
 
 	/*

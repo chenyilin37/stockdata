@@ -7,7 +7,7 @@ import vegoo.stockdata.core.model.StockCapital;
 
 public interface StockPersistentService {
 
-	List<String> queryAllStockCodes();
+	List<String> getAllStockCodes();
 
 	boolean existStockCapital(String stkcode, Date rDate);
 

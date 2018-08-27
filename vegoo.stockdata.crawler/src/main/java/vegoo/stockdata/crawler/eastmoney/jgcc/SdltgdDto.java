@@ -1,4 +1,4 @@
-package vegoo.stockdata.crawler.eastmoney.gdhs;
+package vegoo.stockdata.crawler.eastmoney.jgcc;
 
 import java.util.Date;
 

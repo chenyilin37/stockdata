@@ -9,4 +9,6 @@ public interface JgccmxPersistentService {
 
 	boolean existJgccmx(String scode, Date reportDate, String shcode);
 
+	void settleJgccmx();
+
 }

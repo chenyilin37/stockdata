@@ -6,6 +6,7 @@ import java.util.Dictionary;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 import org.apache.karaf.scheduler.Job;
 import org.apache.karaf.scheduler.JobContext;
@@ -80,9 +81,7 @@ public class GrabBlockJob extends BaseGrabJob implements Job, ManagedService {
     private BlockPersistentService dbBlock;
 	
     
-	public GrabBlockJob() {
-		
-	}
+    private Future futureGrabbing;
 
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
@@ -92,6 +91,17 @@ public class GrabBlockJob extends BaseGrabJob implements Job, ManagedService {
 		String s = (String) properties.get(PN_BLOCK_TYPES);
 		if(!Strings.isNullOrEmpty(s)) {
 			this.blockTypes = split(s.trim(), ",");
+			
+			futureGrabbing = asyncExecute(new Runnable() {
+
+				@Override
+				public void run() {
+					try {
+					  grabBlocks();
+					}finally {
+					  futureGrabbing = null;
+					}
+				}});
 		}
 
 		logger.info("{} = {}", PN_URL_BLKINFO, urlBlockinfo);
@@ -101,7 +111,6 @@ public class GrabBlockJob extends BaseGrabJob implements Job, ManagedService {
 
 	@Override
 	protected void executeJob(JobContext context) {
-		
 		if(Strings.isNullOrEmpty(urlBlockinfo)) {
 			logger.error("没有在配置文件中设置{}参数！", PN_URL_BLKINFO);
 			return;
@@ -116,10 +125,22 @@ public class GrabBlockJob extends BaseGrabJob implements Job, ManagedService {
 			logger.error("没有在配置文件中设置{}参数！", PN_BLOCK_TYPES);
 			return;
 		}
-
-		for(String blkType : blockTypes) {
-		   grabBlkInfo(blkType);		
+		
+		if(futureGrabbing != null) {
+			if(futureGrabbing.isDone() || futureGrabbing.isCancelled()) {
+			  futureGrabbing = null;
+			}else {
+			  return;
+			}
 		}
+		
+		grabBlocks();
+	}
+	
+	private void grabBlocks() {
+		for(String blkType : blockTypes) {
+			   grabBlkInfo(blkType);		
+			}
 	}
 
 
@@ -159,6 +180,7 @@ public class GrabBlockJob extends BaseGrabJob implements Job, ManagedService {
 			
 			blkCodes.add(blkUCode);
 		}
+		
 		return blkCodes;
 	}
     
@@ -186,8 +208,6 @@ public class GrabBlockJob extends BaseGrabJob implements Job, ManagedService {
 		
 		int page = 0;
 		while(grabStockOfBlock(blkUcode, ++page, urlPattern, stksOfBlk) > page) ;
-		
-		//db.deleteAllStocksOfBlock(blkUcode);
 		
 		saveStocksOfBlock(blkUcode, stksOfBlk);
 	}

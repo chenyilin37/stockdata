@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
@@ -33,12 +34,16 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
 		logger.info("{} configured.", this.getClass().getName());
-		
-/*		if(redis.hget(Redis.KEY_CACHED_TBLS, Redis.TABLENAME_BLOCK)==null) {
-		   db.execute("call block_INIT_REDIS()");	// 初始化缓存
-		}
-*/
 	}
+	
+    @Activate
+    private void activate() {
+		logger.info("OSGI BUNDLE:{} activated.", this.getClass().getName());
+
+		//if(redis.hget(Redis.KEY_CACHED_TBLS, Redis.TABLENAME_BLOCK)==null) {
+		//   db.execute("call block_INIT_REDIS()");	// 初始化缓存
+		//}
+    }
 	
    @Override
     public boolean existBlock(String blockUCode) {
@@ -66,7 +71,8 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
     @Override
 	public void insertBlock(String blkType, String marketid, String blkCode, String blkname, String blkUCode) {
     	try {
-    	   db.update(SQL_NEW_BLKINFO, new Object[] {marketid, blkCode, blkname, blkUCode, blkType}, 
+    	   db.update( SQL_NEW_BLKINFO, 
+    			   new Object[] {marketid, blkCode, blkname, blkUCode, blkType}, 
     			   new int[]{Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR});
     	}catch(Exception e) {
     		logger.error("插入block记录出错：{}.{}.{}.{}/{}", marketid, blkCode, blkname, blkUCode, blkType);
@@ -77,7 +83,9 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
     @Override
     public void deleteAllStocksOfBlock(String blkUcode) {
     	try {
-     	   db.update(SQL_DELALL_STKOFBLK, new Object[] { blkUcode}, new int[] {Types.VARCHAR});
+     	   db.update( SQL_DELALL_STKOFBLK, 
+     			   new Object[] { blkUcode},
+     			   new int[] {Types.VARCHAR});
      	}catch(Exception e) {
      		logger.error("",e);
      	}
@@ -87,7 +95,8 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
     @Override
     public void insertStockOfBlock(String blkUcode, String stkCode) {
     	try {
-     	   db.update(SQL_INS_STKOFBLK, new Object[] { blkUcode, stkCode}, 
+     	   db.update( SQL_INS_STKOFBLK, 
+     			   new Object[] { blkUcode, stkCode}, 
      			   new int[] {Types.VARCHAR, Types.VARCHAR});
      	}catch(Exception e) {
      		logger.error("插入StockOfBlock是出错：blkUcode:{}, stkCode:{}, marketid:{}",blkUcode, stkCode);
@@ -99,7 +108,8 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
     @Override
     public void deleteStockOfBlock(String blkUcode, String stkCode) {
     	try {
-     	   db.update(SQL_DEL_STKOFBLK, new Object[] { blkUcode, stkCode}, 
+     	   db.update( SQL_DEL_STKOFBLK, 
+     			   new Object[] { blkUcode, stkCode}, 
      			   new int[] {Types.VARCHAR, Types.VARCHAR});
      	}catch(Exception e) {
      		logger.error("插入StockOfBlock是出错：blkUcode:{}, stkCode:{}, marketid:{}",blkUcode, stkCode);

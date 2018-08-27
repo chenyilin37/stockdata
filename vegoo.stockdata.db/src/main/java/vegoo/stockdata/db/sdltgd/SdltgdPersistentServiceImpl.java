@@ -55,7 +55,7 @@ public class SdltgdPersistentServiceImpl  extends PersistentServiceImpl implemen
 	public void insertSdltgd(String companycode, String sharehdname, String sharehdtype, String sharestype,
 			double rank, String scode, Date rdate, double sharehdnum, double ltag, double zb, Date ndate, String bz,
 			double bdbl, String sharehdcode, double sharehdratio, double bdsum) {
-		db.update(SQL_ADD_SDLTGD, new Object[] {companycode, sharehdname, sharehdtype, sharestype,
+		db.update( SQL_ADD_SDLTGD, new Object[] {companycode, sharehdname, sharehdtype, sharestype,
 				 rank, scode,  rdate,  sharehdnum,  ltag,  zb,  ndate,  bz,
 				 bdbl, sharehdcode,  sharehdratio,  bdsum},
 					new int[] {Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.DOUBLE,

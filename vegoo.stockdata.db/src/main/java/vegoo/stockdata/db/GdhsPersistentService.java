@@ -12,5 +12,7 @@ public interface GdhsPersistentService {
 			double holderAvgCapitalisation, double holderAvgStockQuantity, double totalCapitalisation,
 			double capitalStock, Date noticeDate);
 
+	void settleGdhs();
+
 
 }

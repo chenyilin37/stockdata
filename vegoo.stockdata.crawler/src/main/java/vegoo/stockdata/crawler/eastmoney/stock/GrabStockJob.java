@@ -32,7 +32,7 @@ import vegoo.stockdata.db.StockPersistentService;
 		configurationPid = "stockdata.grab.stock",
 		service = { Job.class,  ManagedService.class}, 
 		property = {
-		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 0 1,18 * * ?", //  静态信息，每天7，8，18抓三次
+		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 0 1,8,18 * * ?", //  静态信息，每小时1次
 		    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
 		} 
 	)
@@ -52,6 +52,8 @@ public class GrabStockJob extends BaseGrabJob implements Job, ManagedService{
 		this.urlStock = (String) properties.get(PN_URL_STOCK);
 		
 		logger.info("{} = {}", PN_URL_STOCK, urlStock);
+		
+		grabStockInfoData();
 	}
 
 	@Override

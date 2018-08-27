@@ -36,8 +36,6 @@ CREATE PROCEDURE stocksOfBlock_UPDATE_REDIS
 ) 
 BEGIN
 
-
-
  	SELECT redis_sadd(CONCAT_WS('_', 'blkstk', blkucode), stockCode) INTO @tmp;   
  	SELECT redis_sadd(CONCAT_WS('_', 'stkblk', stockCode), blkucode) INTO @tmp;   
 
@@ -51,9 +49,8 @@ CREATE PROCEDURE stocksOfBlock_REMOVE_REDIS
 	in marketid VARCHAR(2)
 ) 
 BEGIN
- 	SELECT redis_srem(CONCAT_WS('_', 'blkstk', blkucode)) INTO @tmp;   
- 	SELECT redis_srem(CONCAT_WS('_', 'stkblk', stockCode)) INTO @tmp;   
-
+ 	SELECT redis_srem(CONCAT_WS('_', 'blkstk', blkucode), stockCode) INTO @tmp;   
+ 	SELECT redis_srem(CONCAT_WS('_', 'stkblk', stockCode), blkucode) INTO @tmp;   
 END $
 
 

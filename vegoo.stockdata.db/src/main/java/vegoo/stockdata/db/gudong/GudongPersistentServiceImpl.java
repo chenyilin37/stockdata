@@ -78,7 +78,8 @@ public class GudongPersistentServiceImpl  extends PersistentServiceImpl implemen
 	@Override
 	public void inserteGudong(String SHCode, String SHName, String gdlx, String lxdm, String indtCode, String indtName) {
 		try {
-			db.update(SQL_addJigou2, new Object[] {SHCode, SHName, gdlx, lxdm, indtCode, indtName},
+			db.update(SQL_addJigou2, 
+					new Object[] {SHCode, SHName, gdlx, lxdm, indtCode, indtName},
 						new int[] {Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR});
 		}catch(Exception e) {
 			logger.error("",e);

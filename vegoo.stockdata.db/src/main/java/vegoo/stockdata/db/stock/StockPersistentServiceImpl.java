@@ -24,7 +24,6 @@ import vegoo.stockdata.db.gudong.GudongPersistentServiceImpl;
 
 @Component (immediate = true)
 public class StockPersistentServiceImpl extends PersistentServiceImpl implements StockPersistentService, ManagedService {
-
 	private static final Logger logger = LoggerFactory.getLogger(GudongPersistentServiceImpl.class);
 
     @Reference private RedisService redis;
@@ -33,13 +32,12 @@ public class StockPersistentServiceImpl extends PersistentServiceImpl implements
 	
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
-		// TODO Auto-generated method stub
 		
 	}
 	
 	private static final String QRY_STKS = "SELECT stockCode FROM stock";
 	@Override
-	public List<String> queryAllStockCodes() {
+	public List<String> getAllStockCodes() {
 		try {
 			return db.queryForList(QRY_STKS, String.class);
 		}catch(Exception e) {
@@ -65,7 +63,7 @@ public class StockPersistentServiceImpl extends PersistentServiceImpl implements
 	public void insertStock(String marketid, String stkCode, String stkName, String stkUCode) {
     	boolean isNew = stkName.startsWith("N");
     	try {
-    	   db.update(SQL_NEW_STK, new Object[] {marketid, stkCode, stkName, stkUCode, (isNew?1:0)}, 
+    	   db.update( SQL_NEW_STK, new Object[] {marketid, stkCode, stkName, stkUCode, (isNew?1:0)}, 
     			   new int[]{Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.INTEGER});
     	}catch(Exception e) {
     		logger.error("插入stock记录出错：{}.{}.{}.{}/{}", marketid, stkCode, stkName, stkUCode, isNew);
@@ -92,7 +90,7 @@ public class StockPersistentServiceImpl extends PersistentServiceImpl implements
 	@Override
 	public void insertStockCapital(StockCapital dao) {
 		try {
-			db.update(UPD_STKFLW, new Object[] {dao.getStockCode(), dao.getTransDate(), dao.getLtg()},
+			db.update( UPD_STKFLW, new Object[] {dao.getStockCode(), dao.getTransDate(), dao.getLtg()},
 					              new int[] {Types.VARCHAR,Types.DATE, Types.DOUBLE});
 		}catch(Exception e) {
     		logger.error("", e);
