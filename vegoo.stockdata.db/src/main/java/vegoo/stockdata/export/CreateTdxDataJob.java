@@ -56,8 +56,8 @@ public class CreateTdxDataJob extends ExportDataJob implements Job, ManagedServi
 		exportGdhsSerial(db);  //股东户数
 		
 		Date toDay = new Date();
-		Date curReportDate = StockUtil.getLatestReportDate(toDay);
-		Date prevReportDate = StockUtil.getPreviousReportDate(toDay);
+		Date curReportDate = StockUtil.getReportDate(toDay,0);
+		Date prevReportDate = StockUtil.getReportDate(toDay,-1);
 		
 		exportGdhsReport("股东-本季增减", prevReportDate, curReportDate, db);
 		exportGdhsReport("股东-最新增减", curReportDate, toDay, db);
@@ -117,12 +117,13 @@ public class CreateTdxDataJob extends ExportDataJob implements Job, ManagedServi
 	}
 	
 	private void exportJgccReport(JdbcService db) {
-		Date curReportDate = StockUtil.getLatestReportDate();
+		Date curReportDate = StockUtil.getReportDate();
+		
 		exportJgccZJReport(curReportDate, db);
 		exportJgccCWReport(curReportDate, db);
 	}
 	
-	private static final String SQL_JGCC_CHANGE ="SELECT  CONCAT_WS('|', left(SCode,1)='6', SCode, DATE_FORMAT(RDate,'%Y%m%d'), round(sum(ChangeValue)/100000000 ,2)) FROM jgcc where lx in(1,2,3,5) and RDate=? group by SCode order by SCode";
+	private static final String SQL_JGCC_CHANGE ="SELECT  CONCAT_WS('|', left(SCode,1)='6', SCode, DATE_FORMAT(RDate,'%Y%m%d'), round(sum(ValueChange)/100000000 ,2)) FROM jgcc where lx in(1,2,3,5) and RDate=? group by SCode order by SCode";
 	private void exportJgccZJReport(Date reportDate,JdbcService db) {
 		try {
 			List<String> items = db.queryForList(SQL_JGCC_CHANGE, new Object[] {reportDate}, new int[] {Types.DATE}, String.class);

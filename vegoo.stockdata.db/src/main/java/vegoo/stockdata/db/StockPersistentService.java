@@ -3,7 +3,7 @@ package vegoo.stockdata.db;
 import java.util.Date;
 import java.util.List;
 
-import vegoo.stockdata.core.model.StockCapital;
+import vegoo.stockdata.core.model.StockCapitalDao;
 
 public interface StockPersistentService {
 
@@ -11,7 +11,7 @@ public interface StockPersistentService {
 
 	boolean existStockCapital(String stkcode, Date rDate);
 
-	void insertStockCapital(StockCapital dao);
+	void insertStockCapital(StockCapitalDao dao);
 
 	boolean existStock(String stkCode);
 

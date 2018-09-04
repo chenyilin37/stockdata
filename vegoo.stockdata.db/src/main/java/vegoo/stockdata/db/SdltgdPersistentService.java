@@ -10,4 +10,6 @@ public interface SdltgdPersistentService {
 			String scode, Date rdate, double sharehdnum, double ltag, double zb, Date ndate, String bz, double bdbl,
 			String sharehdcode, double sharehdratio, double bdsum);
 
+	void setdbSdltgd();
+
 }

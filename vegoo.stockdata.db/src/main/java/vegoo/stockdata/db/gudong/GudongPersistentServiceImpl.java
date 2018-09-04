@@ -28,7 +28,7 @@ public class GudongPersistentServiceImpl  extends PersistentServiceImpl implemen
 
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
-		// TODO Auto-generated method stub
+		/* ！！！本函数内不要做需要长时间才能完成的工作，否则，会影响其他BUNDLE的初始化！！！  */
 		
 	}
 	

@@ -35,7 +35,7 @@ public class HQPersistentServiceImpl extends PersistentServiceImpl implements HQ
 
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
-		// TODO Auto-generated method stub
+		/* ！！！本函数内不要做需要长时间才能完成的工作，否则，会影响其他BUNDLE的初始化！！！  */
 		
 	}
 
@@ -51,7 +51,6 @@ public class HQPersistentServiceImpl extends PersistentServiceImpl implements HQ
 	 * 求季报日期endDate对应的在最后一个交易日，以便在指标图上显示
 	 */
 	private static final Map<String,Date> stockTransDateCache = new HashMap<>();
-	private static final String QRY_LAST_TRNSDATE="select transDate from kdaydata where scode=? and transDate<=? order by transDate desc limit 1";
 	@Override
 	public Date getLastTradeDate(String stockCode, Date endDate) {
 		String key = String.format("%s-%tF", stockCode, endDate);
@@ -65,10 +64,31 @@ public class HQPersistentServiceImpl extends PersistentServiceImpl implements HQ
 		return result;
 	}
 	
+	private static final String QRY_LAST_TRNSDATE="select transDate from kdaydata where scode=? and transDate<=? order by transDate desc limit 1";
 	private Date queryLastTradeDate(String stockCode, Date endDate) {
 		try {
-			return db.queryForObject(QRY_LAST_TRNSDATE, new Object[] {stockCode, endDate},
-					new int[] {Types.VARCHAR, Types.DATE}, Date.class);
+			return db.queryForObject(QRY_LAST_TRNSDATE, 
+					new Object[] {stockCode, endDate},
+					new int[] {Types.VARCHAR, Types.DATE}, 
+					Date.class);
+		}catch(EmptyResultDataAccessException e) {
+			return queryLastTradeDateForNewStock(stockCode);
+		}catch(Exception e) {
+			logger.error("",e);
+			return null;
+		}
+	}
+	
+	/**
+	 * 发布公告时，股票还没有上市的新股,
+	 */
+	private static final String QRY_LAST_TRNSDATE_NEW="select transDate from kdaydata where scode=? order by transDate limit 1";
+	private Date queryLastTradeDateForNewStock(String stockCode) {
+		try {
+			return db.queryForObject(QRY_LAST_TRNSDATE_NEW, 
+					new Object[] {stockCode},
+					new int[] {Types.VARCHAR}, 
+					Date.class);
 		}catch(EmptyResultDataAccessException e) {
 			return null;
 		}catch(Exception e) {
@@ -76,7 +96,7 @@ public class HQPersistentServiceImpl extends PersistentServiceImpl implements HQ
 			return null;
 		}
 	}
-	
+
 	private static final String SQL_BUDP_KDAY = "insert into kdaydata(SCode,transDate,open,close,high,low,volume,amount,amplitude,turnoverRate,changeRate,LClose) values(?,?,?,?,?,?,?,?,?,?,?,?)";
 	@Override
 	public void saveKDayData(List<KDayDao> newItems) {

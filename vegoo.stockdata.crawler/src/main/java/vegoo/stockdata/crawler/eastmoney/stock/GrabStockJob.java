@@ -1,11 +1,7 @@
 package vegoo.stockdata.crawler.eastmoney.stock;
 
-import java.beans.PropertyVetoException;
-import java.sql.Types;
 import java.util.Dictionary;
 import java.util.List;
-
-import javax.sql.DataSource;
 
 import org.apache.karaf.scheduler.Job;
 import org.apache.karaf.scheduler.JobContext;
@@ -14,17 +10,12 @@ import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.EmptyResultDataAccessException;
 
 import com.google.common.base.Strings;
 
-import vegoo.jdbcservice.JdbcService;
 import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
-import vegoo.stockdata.crawler.eastmoney.blk.BlockInfoDto;
-import vegoo.stockdata.crawler.eastmoney.blk.GrabBlockJob;
 import vegoo.stockdata.db.StockPersistentService;
 
 @Component (
@@ -32,7 +23,7 @@ import vegoo.stockdata.db.StockPersistentService;
 		configurationPid = "stockdata.grab.stock",
 		service = { Job.class,  ManagedService.class}, 
 		property = {
-		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 0 1,8,18 * * ?", //  静态信息，每小时1次
+		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 6-23/3 * * ?", //  静态信息，每小时1次
 		    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
 		} 
 	)
@@ -53,7 +44,14 @@ public class GrabStockJob extends BaseGrabJob implements Job, ManagedService{
 		
 		logger.info("{} = {}", PN_URL_STOCK, urlStock);
 		
-		grabStockInfoData();
+		// 优先抓去
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				grabStockInfoData();
+				
+			}}).start();
+		
 	}
 
 	@Override
@@ -66,7 +64,6 @@ public class GrabStockJob extends BaseGrabJob implements Job, ManagedService{
 			logger.error("没有在配置文件中设置{}参数！", PN_URL_STOCK);
 			return;
 		}
-		
 		
 		grabStockInfoData(urlStock);
 	}

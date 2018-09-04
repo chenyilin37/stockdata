@@ -5,32 +5,38 @@ import java.util.Calendar;
 import java.util.Date;
 
 public class StockUtil {
-	public static String getLatestReportDateAsString()  {
-		return getLatestReportDateAsString(getLatestReportDate());
-	}
-	
-	public static String getLatestReportDateAsString(Date theDate)  {
-		 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-		 return dateFormat.format(getLatestReportDate(theDate));
+	public static String getReportDateAsString() {	
+		return getReportDateAsString(new Date(),0);
 	}
 
-	public static Date getLatestReportDate()  {
-		return getLatestReportDate(new Date());
+	public static Date getReportDate() {	
+		return getReportDate(new Date(),0);
 	}
 	
-	public static Date getLatestReportDate(Date theDate)  {
+	public static String getReportDateAsString(Date theDate, int previous)  {
+		 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		 return dateFormat.format(getReportDate(theDate, previous));
+	}
+	
+	/*
+	 * previous = 0 刚过去的那个季度，出数据报表的季度
+	 */
+	public static Date getReportDate(Date theDate, int previous) {
 		Calendar calendar = Calendar.getInstance();
 		
 		calendar.setTime(theDate);
-		
-		return getLatestReportDate(calendar);
-	}
-	
-	private static Date getLatestReportDate(Calendar calendar) {
 		calendar.add(Calendar.DATE, 1);  // 向后跳一天
 		
+		if(previous != 0) {
+		  calendar.add(Calendar.MONTH, 3*previous);
+		}
+		
+		return getReportDate(calendar);
+	}
+
+	private static Date getReportDate(Calendar calendar) {
+		
 		int month = calendar.get(Calendar.MONTH);  // 0 based
-	
 		int reportYear = calendar.get(Calendar.YEAR);
 		int reportMonth = 0;
 		int reportDay = 0;
@@ -55,15 +61,6 @@ public class StockUtil {
 		return calendar.getTime();
 	}	
 	
-	public static Date getPreviousReportDate(Date theDate) {
-		Calendar calendar = Calendar.getInstance();
-		
-		calendar.setTime(theDate);
-		calendar.add(Calendar.MONTH, -3);
-		
-		return getLatestReportDate(calendar);
-	}
-
 	/*
 	 * closed : 已经收市
 	 */
@@ -117,10 +114,11 @@ public class StockUtil {
 	
 	
      public static void main(String[] args) {
-	    
-		System.out.println(String.format("%tF", getLastTransDate(false)));
-		System.out.println(String.format("%tF", getLastTransDate(true)));
-
+	    Date now = new Date();
+		for(int i=0; i<4*6; ++i) {
+			String rptDate = StockUtil.getReportDateAsString(now, -1 * i);
+			System.out.println(rptDate);
+		}
 	}
 		
 	

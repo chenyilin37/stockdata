@@ -20,9 +20,10 @@ import com.google.common.base.Strings;
 
 import vegoo.commons.JsonUtil;
 import vegoo.stockdata.core.model.KDayDao;
-import vegoo.stockdata.core.model.StockCapital;
+import vegoo.stockdata.core.model.StockCapitalDao;
 import vegoo.stockdata.core.utils.StockUtil;
 import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
+import vegoo.stockdata.db.FhsgPersistentService;
 import vegoo.stockdata.db.HQPersistentService;
 import vegoo.stockdata.db.StockPersistentService;
 
@@ -30,9 +31,9 @@ import vegoo.stockdata.db.StockPersistentService;
 @Component (
 		immediate = true, 
 		configurationPid = "stockdata.grab.hangqing",
-		//service = { Job.class,  ManagedService.class}, 
+		service = { Job.class,  ManagedService.class}, 
 		property = {
-		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 30 15,1 * * ?", //  静态信息，每天7，8，18抓三次
+		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 0-5,16,23 * * ?", //  静态信息，每天7，8，18抓三次
 		    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
 		} 
 	)
@@ -46,15 +47,17 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 	//private String urlLivedata;
 	private String urlKday;
 	
-    @Reference
-    private StockPersistentService dbStock;
-    @Reference
-    private HQPersistentService dbHQ;
+    @Reference private StockPersistentService dbStock;
+    @Reference private HQPersistentService dbHQ;
+    @Reference private FhsgPersistentService dbFhsg; 
 
     private Future<?> futureGrabbing;
+
     @Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
-		//this.urlLivedata = (String) properties.get(PN_URL_LIVEDATA);
+		/* ！！！本函数内不要做需要长时间才能完成的工作，否则，会影响其他BUNDLE的初始化！！！  */
+
+    	//this.urlLivedata = (String) properties.get(PN_URL_LIVEDATA);
 		this.urlKday = (String) properties.get(PN_URL_KDAY);
 
 		//logger.info("{} = {}", PN_URL_LIVEDATA, urlLivedata);
@@ -73,19 +76,13 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 
 	@Override
 	protected void executeJob(JobContext context) {
-		if(futureGrabbing != null) {
-			if(futureGrabbing.isDone() || futureGrabbing.isCancelled()) {
-			  futureGrabbing = null;
-			}else {
-			  return;
-			}
+		if((futureGrabbing == null)||(futureGrabbing.isDone() || futureGrabbing.isCancelled())) {
+			grabHistoryKDay();
 		}
 		
-		grabHistoryKDay();
 	}
 	
 	private void grabHistoryKDay() {
-		
 		if(Strings.isNullOrEmpty(urlKday)) {
 			logger.error("没有在配置文件中设置{}参数！", PN_URL_KDAY);
 			return;
@@ -144,7 +141,14 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 			if(dbStock.existStockCapital(stkcode, dto.getTime())) {
 				continue;
 			}
-			StockCapital dao = new StockCapital(stkcode, dto.getTime(), dto.getLtg());
+			
+			StockCapitalDao dao = new StockCapitalDao();
+			
+			dao.setStockCode(stkcode);
+			dao.setTransDate(dto.getTime());
+			dao.setLtg(dto.getLtg());
+
+			
 			dbStock.insertStockCapital(dao);
 		}
 	}
@@ -201,13 +205,13 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 					dao.setChangeRate(0);
 					dao.setAmplitude(0);
 				}else {  // TODO 除权日，这样算涨幅不对！！！
-					double lclose = calcLClose(stkcode, tdate, prevDao.getClose());
+					double lclose = dbFhsg.calcLClose(stkcode, tdate, prevDao.getClose());
 					dao.setLClose(lclose);
 					dao.setChangeRate((dao.getClose()-lclose)*100/lclose);
 					dao.setAmplitude((dao.getHigh()-dao.getLow())*100/lclose);
 				}
 
-				if(lastDate==null || tdate.after(lastDate)) {
+				if(lastDate == null || tdate.after(lastDate)) {
 					result.add(dao);
 				}
 				
@@ -221,10 +225,6 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 		return result;
 	}
 	
-	private double calcLClose(String stkcode, Date tdate, double lClose) {
-		// TODO 除权日，这样算涨幅不对！！！
-		return lClose;
-	}
 
 	private double calcTurnoverRate(Date tdate, double volume, StockKDayFlowDto[] flow) {
 		double ltg = 0;
@@ -239,6 +239,7 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 		if(ltg==0) {
 			return 0;
 		}
+		
 		return volume*100/ltg;
 	}
 

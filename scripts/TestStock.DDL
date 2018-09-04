@@ -4,24 +4,12 @@
 -- ------------------------------------------------------
 -- Server version	5.5.60-0+deb8u1
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
 --
 -- Table structure for table `block`
 --
 
 DROP TABLE IF EXISTS `block`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `block` (
   `blkucode` varchar(10) NOT NULL,
   `marketid` varchar(1) DEFAULT NULL,
@@ -31,70 +19,38 @@ CREATE TABLE `block` (
   PRIMARY KEY (`blkucode`),
   UNIQUE KEY `index2` (`blkcode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `block_AFTER_INSERT` AFTER INSERT ON `block` FOR EACH ROW
+CREATE  TRIGGER `block_AFTER_INSERT` AFTER INSERT ON `block` FOR EACH ROW
 BEGIN
   call block_UPDATE_REDIS(new.blkucode, new.marketid, new.blkcode, new.blkname, new.blktype);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `block_AFTER_UPDATE` AFTER UPDATE ON `block` FOR EACH ROW
+CREATE  TRIGGER `block_AFTER_UPDATE` AFTER UPDATE ON `block` FOR EACH ROW
 BEGIN
    call block_REMOVE_REDIS(old.blkucode, old.marketid, old.blkcode, old.blkname, old.blktype);
    call block_UPDATE_REDIS(new.blkucode, new.marketid, new.blkcode, new.blkname, new.blktype);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `block_AFTER_DELETE` AFTER DELETE ON `block` FOR EACH ROW
+CREATE  TRIGGER `block_AFTER_DELETE` AFTER DELETE ON `block` FOR EACH ROW
 BEGIN
   call block_REMOVE_REDIS(old.blkucode, old.marketid, old.blkcode, old.blkname, old.blktype);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
 
 --
 -- Table structure for table `gdhs`
 --
 
 DROP TABLE IF EXISTS `gdhs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `gdhs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `stockCode` varchar(10) NOT NULL,
@@ -121,17 +77,9 @@ CREATE TABLE `gdhs` (
   UNIQUE KEY `index2` (`stockCode`,`EndDate`),
   KEY `index3` (`EndDate`,`stockCode`)
 ) ENGINE=InnoDB AUTO_INCREMENT=27984 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `gdhs_AFTER_INSERT` AFTER INSERT ON `gdhs` FOR EACH ROW
+CREATE  TRIGGER `gdhs_AFTER_INSERT` AFTER INSERT ON `gdhs` FOR EACH ROW
 BEGIN
   call gdhs_UPDATE_REDIS( new.id,
 													new.stockCode,
@@ -151,22 +99,12 @@ BEGIN
 													new.ClosePrice,
 													new.PreviousHolderNum,
 													new.PreviousEndDate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `gdhs_AFTER_UPDATE` AFTER UPDATE ON `gdhs` FOR EACH ROW
+CREATE  TRIGGER `gdhs_AFTER_UPDATE` AFTER UPDATE ON `gdhs` FOR EACH ROW
 BEGIN
    call gdhs_REMOVE_REDIS(old.id,
 													old.stockCode,
@@ -204,22 +142,12 @@ BEGIN
 													new.ClosePrice,
 													new.PreviousHolderNum,
 													new.PreviousEndDate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `gdhs_AFTER_DELETE` AFTER DELETE ON `gdhs` FOR EACH ROW
+CREATE  TRIGGER `gdhs_AFTER_DELETE` AFTER DELETE ON `gdhs` FOR EACH ROW
 BEGIN
   call gdhs_REMOVE_REDIS(old.id,
 													old.stockCode,
@@ -239,20 +167,16 @@ BEGIN
 													old.ClosePrice,
 													old.PreviousHolderNum,
 													old.PreviousEndDate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
 
 --
 -- Table structure for table `gudong`
 --
 
 DROP TABLE IF EXISTS `gudong`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `gudong` (
   `SHCode` varchar(36) NOT NULL COMMENT '股东代码',
   `SHName` varchar(128) DEFAULT NULL COMMENT '股东名称',
@@ -264,70 +188,38 @@ CREATE TABLE `gudong` (
   `IndtName` varchar(126) DEFAULT NULL COMMENT '管理公司名称',
   PRIMARY KEY (`SHCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='股东';
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `gudong_AFTER_INSERT` AFTER INSERT ON `gudong` FOR EACH ROW
+CREATE  TRIGGER `gudong_AFTER_INSERT` AFTER INSERT ON `gudong` FOR EACH ROW
 BEGIN
   call gudong_UPDATE_REDIS(new.SHCode,new.SHName,new.gdlx,new.lxdm,new.niu,new.VPosition,new.IndtCode,new.IndtName);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `gudong_AFTER_UPDATE` AFTER UPDATE ON `gudong` FOR EACH ROW
+CREATE  TRIGGER `gudong_AFTER_UPDATE` AFTER UPDATE ON `gudong` FOR EACH ROW
 BEGIN
    call gudong_REMOVE_REDIS(old.SHCode,old.SHName,old.gdlx,old.lxdm,old.niu,old.VPosition,old.IndtCode,old.IndtName);
    call gudong_UPDATE_REDIS(new.SHCode,new.SHName,new.gdlx,new.lxdm,new.niu,new.VPosition,new.IndtCode,new.IndtName);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `gudong_AFTER_DELETE` AFTER DELETE ON `gudong` FOR EACH ROW
+CREATE  TRIGGER `gudong_AFTER_DELETE` AFTER DELETE ON `gudong` FOR EACH ROW
 BEGIN
   call gudong_REMOVE_REDIS(old.SHCode,old.SHName,old.gdlx,old.lxdm,old.niu,old.VPosition,old.IndtCode,old.IndtName);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
 
 --
 -- Table structure for table `jgcc`
 --
 
 DROP TABLE IF EXISTS `jgcc`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `jgcc` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `SCode` varchar(6) NOT NULL,
@@ -349,17 +241,9 @@ CREATE TABLE `jgcc` (
   UNIQUE KEY `index2` (`SCode`,`RDate`,`lx`),
   KEY `index3` (`RDate`,`lx`,`SCode`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2762 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `jgcc_AFTER_INSERT` AFTER INSERT ON `jgcc` FOR EACH ROW
+CREATE  TRIGGER `jgcc_AFTER_INSERT` AFTER INSERT ON `jgcc` FOR EACH ROW
 BEGIN
   call jgcc_UPDATE_REDIS( new.id,
 													new.SCode,
@@ -377,22 +261,12 @@ BEGIN
 													new.LTZBChange,
 													new.ClosePrice,
 													new.ChangeValue);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `jgcc_AFTER_UPDATE` AFTER UPDATE ON `jgcc` FOR EACH ROW
+CREATE  TRIGGER `jgcc_AFTER_UPDATE` AFTER UPDATE ON `jgcc` FOR EACH ROW
 BEGIN
    call jgcc_REMOVE_REDIS(old.id,
 													old.SCode,
@@ -427,22 +301,12 @@ BEGIN
 													new.LTZBChange,
 													new.ClosePrice,
 													new.ChangeValue);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `jgcc_AFTER_DELETE` AFTER DELETE ON `jgcc` FOR EACH ROW
+CREATE  TRIGGER `jgcc_AFTER_DELETE` AFTER DELETE ON `jgcc` FOR EACH ROW
 BEGIN
   call jgcc_REMOVE_REDIS(	old.id,
 													old.SCode,
@@ -461,20 +325,16 @@ BEGIN
 													old.ClosePrice,
 													old.ChangeValue
 												);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
 
 --
 -- Table structure for table `jgccmx`
 --
 
 DROP TABLE IF EXISTS `jgccmx`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `jgccmx` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `SCode` varchar(10) DEFAULT NULL COMMENT '股票代码',
@@ -495,17 +355,9 @@ CREATE TABLE `jgccmx` (
   UNIQUE KEY `SCode_UNIQUE` (`SCode`,`RDate`,`SHCode`),
   KEY `index3` (`RDate`,`SCode`,`SHCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='机构持股明细';
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `jgccmx_AFTER_INSERT` AFTER INSERT ON `jgccmx` FOR EACH ROW
+CREATE  TRIGGER `jgccmx_AFTER_INSERT` AFTER INSERT ON `jgccmx` FOR EACH ROW
 BEGIN
   call jgccmx_UPDATE_REDIS( new.id,
 														new.SCode,
@@ -517,22 +369,12 @@ BEGIN
 														new.Vposition,
 														new.TabRate,
 														new.TabProRate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `jgccmx_AFTER_UPDATE` AFTER UPDATE ON `jgccmx` FOR EACH ROW
+CREATE  TRIGGER `jgccmx_AFTER_UPDATE` AFTER UPDATE ON `jgccmx` FOR EACH ROW
 BEGIN
    call jgccmx_REMOVE_REDIS(old.id,
 														old.SCode,
@@ -555,22 +397,12 @@ BEGIN
 														new.Vposition,
 														new.TabRate,
 														new.TabProRate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `jgccmx_AFTER_DELETE` AFTER DELETE ON `jgccmx` FOR EACH ROW
+CREATE  TRIGGER `jgccmx_AFTER_DELETE` AFTER DELETE ON `jgccmx` FOR EACH ROW
 BEGIN
   call jgccmx_REMOVE_REDIS( old.id,
 														old.SCode,
@@ -582,20 +414,16 @@ BEGIN
 														old.Vposition,
 														old.TabRate,
 														old.TabProRate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
 
 --
 -- Table structure for table `kdaydata`
 --
 
 DROP TABLE IF EXISTS `kdaydata`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `kdaydata` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `SCode` varchar(10) NOT NULL,
@@ -614,17 +442,9 @@ CREATE TABLE `kdaydata` (
   UNIQUE KEY `index2` (`SCode`,`transDate`),
   KEY `index3` (`transDate`,`SCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `kdaydata_AFTER_INSERT` AFTER INSERT ON `kdaydata` FOR EACH ROW
+CREATE  TRIGGER `kdaydata_AFTER_INSERT` AFTER INSERT ON `kdaydata` FOR EACH ROW
 BEGIN
   call kdaydata_UPDATE_REDIS( new.id,
 															new.SCode,
@@ -639,22 +459,12 @@ BEGIN
 															new.changeRate,
 															new.amplitude,
 															new.turnoverRate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `kdaydata_AFTER_UPDATE` AFTER UPDATE ON `kdaydata` FOR EACH ROW
+CREATE  TRIGGER `kdaydata_AFTER_UPDATE` AFTER UPDATE ON `kdaydata` FOR EACH ROW
 BEGIN
    call kdaydata_REMOVE_REDIS(old.id,
 															old.SCode,
@@ -683,22 +493,12 @@ BEGIN
 															new.changeRate,
 															new.amplitude,
 															new.turnoverRate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `kdaydata_AFTER_DELETE` AFTER DELETE ON `kdaydata` FOR EACH ROW
+CREATE  TRIGGER `kdaydata_AFTER_DELETE` AFTER DELETE ON `kdaydata` FOR EACH ROW
 BEGIN
   call kdaydata_REMOVE_REDIS( old.id,
 															old.SCode,
@@ -713,20 +513,16 @@ BEGIN
 															old.changeRate,
 															old.amplitude,
 															old.turnoverRate);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
 
 --
 -- Table structure for table `sdltgd`
 --
 
 DROP TABLE IF EXISTS `sdltgd`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `sdltgd` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `SCODE` varchar(10) NOT NULL,
@@ -749,17 +545,9 @@ CREATE TABLE `sdltgd` (
   UNIQUE KEY `index2` (`SCODE`,`RDATE`,`SHAREHDCODE`),
   KEY `index3` (`RDATE`,`SCODE`,`SHAREHDCODE`)
 ) ENGINE=InnoDB AUTO_INCREMENT=12975 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `sdltgd_AFTER_INSERT` AFTER INSERT ON `sdltgd` FOR EACH ROW
+CREATE  TRIGGER `sdltgd_AFTER_INSERT` AFTER INSERT ON `sdltgd` FOR EACH ROW
 BEGIN
   call sdltgd_UPDATE_REDIS( new.id,
 														new.SCODE,
@@ -778,22 +566,12 @@ BEGIN
 														new.SHAREHDRATIO,
 														new.BDSUM,
 														new.COMPANYCODE);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `sdltgd_AFTER_UPDATE` AFTER UPDATE ON `sdltgd` FOR EACH ROW
+CREATE  TRIGGER `sdltgd_AFTER_UPDATE` AFTER UPDATE ON `sdltgd` FOR EACH ROW
 BEGIN
    call sdltgd_REMOVE_REDIS(old.id,
 														old.SCODE,
@@ -830,22 +608,12 @@ BEGIN
 														new.SHAREHDRATIO,
 														new.BDSUM,
 														new.COMPANYCODE);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `sdltgd_AFTER_DELETE` AFTER DELETE ON `sdltgd` FOR EACH ROW
+CREATE  TRIGGER `sdltgd_AFTER_DELETE` AFTER DELETE ON `sdltgd` FOR EACH ROW
 BEGIN
   call sdltgd_REMOVE_REDIS( old.id,
 														old.SCODE,
@@ -864,20 +632,16 @@ BEGIN
 														old.SHAREHDRATIO,
 														old.BDSUM,
 														old.COMPANYCODE);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
 
 --
 -- Table structure for table `stock`
 --
 
 DROP TABLE IF EXISTS `stock`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `stock` (
   `stockCode` varchar(10) NOT NULL,
   `stockName` varchar(45) DEFAULT NULL,
@@ -887,70 +651,38 @@ CREATE TABLE `stock` (
   PRIMARY KEY (`stockCode`),
   KEY `index2` (`marketid`,`stockCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `stock_AFTER_INSERT` AFTER INSERT ON `stock` FOR EACH ROW
+CREATE  TRIGGER `stock_AFTER_INSERT` AFTER INSERT ON `stock` FOR EACH ROW
 BEGIN
   call stock_UPDATE_REDIS(new.stockCode,new.stockName,new.marketid,new.stockUcode,new.isNew);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `stock_AFTER_UPDATE` AFTER UPDATE ON `stock` FOR EACH ROW
+CREATE  TRIGGER `stock_AFTER_UPDATE` AFTER UPDATE ON `stock` FOR EACH ROW
 BEGIN
    call stock_REMOVE_REDIS(old.stockCode,old.stockName,old.marketid,old.stockUcode,old.isNew);
    call stock_UPDATE_REDIS(new.stockCode,new.stockName,new.marketid,new.stockUcode,new.isNew);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `stock_AFTER_DELETE` AFTER DELETE ON `stock` FOR EACH ROW
+CREATE  TRIGGER `stock_AFTER_DELETE` AFTER DELETE ON `stock` FOR EACH ROW
 BEGIN
   call stock_REMOVE_REDIS(old.stockCode,old.stockName,old.marketid,old.stockUcode,old.isNew);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
 
 --
 -- Table structure for table `stockCapital`
 --
 
 DROP TABLE IF EXISTS `stockCapital`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `stockCapital` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `stockCode` varchar(10) DEFAULT NULL,
@@ -967,8 +699,7 @@ CREATE TABLE `stockCapital` (
 --
 
 DROP TABLE IF EXISTS `stocksOfBlock`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
 CREATE TABLE `stocksOfBlock` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `blkUcode` varchar(10) DEFAULT NULL,
@@ -978,70 +709,31 @@ CREATE TABLE `stocksOfBlock` (
   UNIQUE KEY `ndx` (`blkUcode`,`stockCode`),
   KEY `index3` (`stockCode`,`blkUcode`)
 ) ENGINE=InnoDB AUTO_INCREMENT=12346 DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `stocksOfBlock_AFTER_INSERT` AFTER INSERT ON `stocksOfBlock` FOR EACH ROW
+CREATE  TRIGGER `stocksOfBlock_AFTER_INSERT` AFTER INSERT ON `stocksOfBlock` FOR EACH ROW
 BEGIN
   call stocksOfBlock_UPDATE_REDIS(new.blkUcode,new.stockCode,new.marketid);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `stocksOfBlock_AFTER_UPDATE` AFTER UPDATE ON `stocksOfBlock` FOR EACH ROW
+CREATE  TRIGGER `stocksOfBlock_AFTER_UPDATE` AFTER UPDATE ON `stocksOfBlock` FOR EACH ROW
 BEGIN
    call stocksOfBlock_REMOVE_REDIS(old.blkUcode,old.stockCode,old.marketid);
    call stocksOfBlock_UPDATE_REDIS(new.blkUcode,new.stockCode,new.marketid);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8 */ ;
-/*!50003 SET character_set_results = utf8 */ ;
-/*!50003 SET collation_connection  = utf8_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = '' */ ;
+
+
 DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`chenyl`@`%`*/ /*!50003 TRIGGER `stocksOfBlock_AFTER_DELETE` AFTER DELETE ON `stocksOfBlock` FOR EACH ROW
+CREATE  TRIGGER `stocksOfBlock_AFTER_DELETE` AFTER DELETE ON `stocksOfBlock` FOR EACH ROW
 BEGIN
   call stocksOfBlock_REMOVE_REDIS(old.blkUcode,old.stockCode,old.marketid);
-END */;;
+END ;;
 DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
 
 -- Dump completed on 2018-08-20 10:33:13

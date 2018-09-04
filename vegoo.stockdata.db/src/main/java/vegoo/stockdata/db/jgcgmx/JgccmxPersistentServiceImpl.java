@@ -20,6 +20,7 @@ import vegoo.jdbcservice.JdbcService;
 import vegoo.redis.RedisService;
 import vegoo.stockdata.core.BaseJob;
 import vegoo.stockdata.core.utils.StockUtil;
+import vegoo.stockdata.db.FhsgPersistentService;
 import vegoo.stockdata.db.JgccmxPersistentService;
 import vegoo.stockdata.db.base.PersistentServiceImpl;
 
@@ -28,9 +29,8 @@ public class JgccmxPersistentServiceImpl extends PersistentServiceImpl implement
 	private static final Logger logger = LoggerFactory.getLogger(JgccmxPersistentServiceImpl.class);
 
     @Reference private RedisService redis;
-
     @Reference private JdbcService db;
-
+    @Reference private FhsgPersistentService dbFhsg; 
 
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
@@ -55,17 +55,26 @@ public class JgccmxPersistentServiceImpl extends PersistentServiceImpl implement
 
 
     //SCode,SName,RDate,SHCode,SHName,IndtCode,InstSName,TypeCode,Type,ShareHDNum,Vposition,TabRate,TabProRate
-	private static final String SQL_INS_JGCCMX = "insert into jgccmx(SCode,RDate,SHCode,IndtCode,TypeCode,ShareHDNum,Vposition,TabRate,TabProRate) "
-			                                               + "values (?,?,?,?,?,?,?,?,?)";
+	private static final String SQL_INS_JGCCMX = "insert into jgccmx(SCode,RDate,SHCode,IndtCode,TypeCode,ShareHDNum,Vposition,TabRate,TabProRate,ClosePrice) "
+			                                               + "values (?,?,?,?,?,?,?,?,?,?)";
 	//private static final String[] MX_FLDS_DB = {"SCode","RDate","SHCode","IndtCode","TypeCode","ShareHDNum","Vposition","TabRate","TabProRate"};
 	// private static final String[] MX_FLDS_JSON = {F_MX_SCode,F_MX_RDate,F_MX_SHCode,F_MX_IndtCode,F_MX_TypeCode,F_MX_ShareHDNum,F_MX_Vposition,F_MX_TabRate,F_MX_TabProRate}; 
-	private static final int[] MX_FLD_Types  = {Types.VARCHAR,Types.DATE, Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE};
+	private static final int[] MX_FLD_Types  = {Types.VARCHAR,Types.DATE, Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE};
 	
-	public void insertJgccmx(String SCode, Date RDate, String SHCode,String IndtCode,String TypeCode,double ShareHDNum,double Vposition,double TabRate,double TabProRate ) {
+	public void insertJgccmx(String SCode, Date RDate, String SHCode,String IndtCode,String TypeCode,double shareHDNum,double vPosition,double TabRate,double TabProRate ) {
+		if(shareHDNum <1) {  // 小于1的记录，丢弃
+			   return;	
+		}
+		
+		double closeprice = vPosition/shareHDNum;
+		
+		if(closeprice >10000) {  // 单价大于10000，丢弃
+		   return;
+		}
 		
 		try {
 			db.update( SQL_INS_JGCCMX, 
-					  new Object[] {SCode,RDate,SHCode,IndtCode,TypeCode,ShareHDNum,Vposition,TabRate,TabProRate}, 
+					  new Object[] {SCode,RDate,SHCode,IndtCode,TypeCode,shareHDNum,vPosition,TabRate,TabProRate, closeprice}, 
 					  MX_FLD_Types);
 		}catch(Exception e) {
 			logger.error("",e);
@@ -86,6 +95,8 @@ public class JgccmxPersistentServiceImpl extends PersistentServiceImpl implement
 	private List<Date> queryJgccmxReportDates() {
 		try {
 			return db.queryForList(SQL_QRY_JGCCMX_RDATE, Date.class);
+		}catch(EmptyResultDataAccessException e) {
+			return new ArrayList<>();
 		}catch(Exception e) {
 			logger.error("", e);
 			return new ArrayList<>();
@@ -93,41 +104,44 @@ public class JgccmxPersistentServiceImpl extends PersistentServiceImpl implement
 	}
 
 	private void processJgccmx(Date rdate) {
-		List<Map<String, Object>> items = queryJgccmx(rdate);
-		Date prevRDate = StockUtil.getPreviousReportDate(rdate);
+		List<Map<String, Object>> items = queryJgccmxData(rdate);
+		Date prevRDate = StockUtil.getReportDate(rdate, -1);
 		
 		for(Map<String, Object> item : items) {
-			updateJgccmxData(item, prevRDate);
+			updateJgccmxData(rdate,item, prevRDate);
 		}
 	}
 
 	private static final String SQL_QRY_JGCCMX="SELECT id,SCode,SHCode FROM jgccmx where rdate=? and PrevRDate is null";
-	private List<Map<String, Object>> queryJgccmx(Date rdate){
+	private List<Map<String, Object>> queryJgccmxData(Date rdate){
 		try {
 			return db.queryForList(SQL_QRY_JGCCMX, new Object[] {rdate}, new int[] {Types.DATE});
+		}catch(EmptyResultDataAccessException e) {
+			return new ArrayList<>();
 		}catch(Exception e) {
 			logger.error("", e);
 			return new ArrayList<>();
 		}
 	}
 	
-	private void updateJgccmxData(Map<String, Object> item, Date prevRDate) {
+	private void updateJgccmxData(Date theRDate, Map<String, Object> item, Date prevRDate) {
 		Integer id = (Integer) item.get("id");
 		String SCode = (String) item.get("SCode");
 		String SHCode = (String) item.get("SHCode");
+		//long shareHDNum = ((BigDecimal) item.get("SHCode")).longValue();
 		
 		Map<String, Object> prevItem = queryPrevJgccmx(prevRDate, SHCode, SCode);
 		if(prevItem==null || prevItem.isEmpty()) {
 			return;
 		}
-		updateJgccmxPrevData(id, prevRDate, prevItem);
+		updateJgccmxPrevData(id, theRDate, SCode, prevRDate, prevItem);
 	}
 
 	/***
 	 * 将机构持股明细，补上上期持股数据，便于分析
 	 * @param rdate
 	 */
-	private static final String SQL_QRY_JGCCMX_PREV="SELECT ShareHDNum,Vposition FROM jgccmx where rdate=? and shcode=? and scode=?";
+	private static final String SQL_QRY_JGCCMX_PREV="SELECT ShareHDNum,Vposition,TabProRate FROM jgccmx where rdate=? and shcode=? and scode=?";
 	private Map<String, Object> queryPrevJgccmx(Date rdate,String SHCode, String SCode){
 		try {
 			return db.queryForMap(SQL_QRY_JGCCMX_PREV, new Object[] {rdate, SHCode, SCode}, 
@@ -141,21 +155,27 @@ public class JgccmxPersistentServiceImpl extends PersistentServiceImpl implement
 	}
 	
 	private static final String SQL_UPD_JGCCMX_PREV="UPDATE jgccmx set PrevRDate=?, PrevHDNum=?,"
-	        +" PrevVPosition=?, ChangeHDNum=ShareHDNum-? , ChangeValue=Vposition-? "
+	        +" PrevLTZB=?, PrevVPosition=?, ChangeHDNum=ShareHDNum-PrevHDNum , ChangeValue=ChangeHDNum*ClosePrice,ChangeLTZB=TabProRate-PrevLTZB "
 			+" where id=?";
-	private void updateJgccmxPrevData(Integer id, Date prevRDate, Map<String, Object> prevItem) {
+	private void updateJgccmxPrevData(Integer id, Date theRDate, String scode, Date prevRDate, Map<String, Object> prevItem) {
 		try {
-			double ShareHDNum = ((BigDecimal)prevItem.get("ShareHDNum")).doubleValue();
-			double Vposition = ((BigDecimal)prevItem.get("Vposition")).doubleValue();
+			double prevHDNum = ((BigDecimal)prevItem.get("ShareHDNum")).doubleValue();
+			
+			if(prevHDNum>0) {
+			   prevHDNum = dbFhsg.adjustWithHoldNum(theRDate, scode, prevHDNum);
+			}
+			
+			double prevLtzb = ((BigDecimal)prevItem.get("TabProRate")).doubleValue();
+			double prevValue = ((BigDecimal)prevItem.get("Vposition")).doubleValue();
 			
 			db.update( SQL_UPD_JGCCMX_PREV, 
-					new Object[] {prevRDate, ShareHDNum, Vposition, ShareHDNum, Vposition, id}, 
-					new int[] {Types.DATE, Types.DOUBLE, Types.DOUBLE, Types.DOUBLE, Types.DOUBLE, Types.INTEGER});
+					new Object[] {prevRDate, prevHDNum, prevLtzb, prevValue, 
+							id}, 
+					new int[] {Types.DATE, Types.DOUBLE, Types.DOUBLE, Types.DOUBLE, 
+							Types.INTEGER});
 		}catch(Exception e) {
 			logger.error("", e);
 		}
 	}
 
-		
-	
 }

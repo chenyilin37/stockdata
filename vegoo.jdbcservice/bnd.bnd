@@ -1,1 +1,2 @@
+-dsannotations: *
 Export-Package: vegoo.jdbcservice

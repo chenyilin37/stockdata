@@ -32,7 +32,6 @@ public class JsonUtil {
 				}catch(ParseException e2) {
 				  SimpleDateFormat formatter3 = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 				  return formatter3.parse(value);
-					
 				}
 			}
 		}

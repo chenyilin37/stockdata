@@ -16,7 +16,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 
 import vegoo.jdbcservice.JdbcService;
 import vegoo.redis.RedisService;
-import vegoo.stockdata.core.model.StockCapital;
+import vegoo.stockdata.core.model.StockCapitalDao;
 import vegoo.stockdata.db.StockPersistentService;
 import vegoo.stockdata.db.base.PersistentServiceImpl;
 import vegoo.stockdata.db.gudong.GudongPersistentServiceImpl;
@@ -88,7 +88,7 @@ public class StockPersistentServiceImpl extends PersistentServiceImpl implements
 
 	private static final String UPD_STKFLW="insert into stockCapital(stockCode,rdate,ltg) values(?,?,?)";
 	@Override
-	public void insertStockCapital(StockCapital dao) {
+	public void insertStockCapital(StockCapitalDao dao) {
 		try {
 			db.update( UPD_STKFLW, new Object[] {dao.getStockCode(), dao.getTransDate(), dao.getLtg()},
 					              new int[] {Types.VARCHAR,Types.DATE, Types.DOUBLE});

@@ -31,20 +31,20 @@ public class GdhsPersistentServiceImpl extends PersistentServiceImpl implements 
 
     @Reference private JdbcService db;
     
-    @Reference  
-    private HQPersistentService dbKDayData; // (policy=ReferencePolicy.DYNAMIC)
+    @Reference private HQPersistentService dbKDayData; // (policy=ReferencePolicy.DYNAMIC)
 
-    @Override
-	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
-		
-		
-	}
 
     @Activate
     private void activate() {
 		logger.info("OSGI BUNDLE:{} activated.", this.getClass().getName());
    	
     }
+    
+    @Override
+	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
+		
+		
+	}
 	
 	private static final String SQL_EXIST_GDHS = "select stockcode from gdhs where stockcode=? and enddate=?";
 	public boolean existGDHS(String stockCode, Date endDate) {
@@ -82,8 +82,8 @@ public class GdhsPersistentServiceImpl extends PersistentServiceImpl implements 
 		// 因为enddate有可能不是交易日，或者该股票当日停牌不交易，
 		// 求季报日期endDate对应的在最后一个交易日，以便在指标图上显示
 		// Date endTradeDate = dbKDayData.getLastTradeDate(stockCode, endDate);
-
-		db.update( SQL_ADDGDHS, new Object[] {stockCode, endDate, 
+		try {
+		   db.update( SQL_ADDGDHS, new Object[] {stockCode, endDate, 
 				   holderNum,  previousHolderNum,
 					 holderNumChange,  holderNumChangeRate,  rangeChangeRate,  previousEndDate,
 					 holderAvgCapitalisation,  holderAvgStockQuantity,  totalCapitalisation,
@@ -91,10 +91,18 @@ public class GdhsPersistentServiceImpl extends PersistentServiceImpl implements 
 				new int[] {Types.VARCHAR, Types.DATE,  Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,
 						   Types.DOUBLE, Types.DOUBLE, Types.DATE,  Types.DOUBLE, Types.DOUBLE, Types.DOUBLE,
 						   Types.DOUBLE,Types.DATE});  ///*,Types.DOUBLE,Types.VARCHAR,Types.DOUBLE*/
+		}catch(Exception e) {
+			logger.error("", e);
+		}
 	}
 
 	@Override
 	public void settleGdhs() {
+		// 调整报告期对应的交易日；
+		settleEndTradeDate();
+	}
+	
+	private void settleEndTradeDate() {
 		List<Date> reportDates = queryReportDateOfGdhsNullTransDate();
 		for(Date rptDate:reportDates) {
 			processGdhs(rptDate);

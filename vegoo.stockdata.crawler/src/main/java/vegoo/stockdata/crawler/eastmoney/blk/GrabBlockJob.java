@@ -55,9 +55,9 @@ import vegoo.stockdata.db.BlockPersistentService;
 @Component (
 	immediate = true, 
 	configurationPid = "stockdata.grab.block",
-	//service = { Job.class,  ManagedService.class}, 
+	service = { Job.class,  ManagedService.class}, 
 	property = {
-	    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 0 1,18 * * ?", //  静态信息，每天7，8，18抓三次
+	    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 6-23/3 * * ?", //  静态信息，每天7，8，18抓三次
 	    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
 	} 
 )
@@ -81,17 +81,17 @@ public class GrabBlockJob extends BaseGrabJob implements Job, ManagedService {
     private BlockPersistentService dbBlock;
 	
     
-    private Future futureGrabbing;
+    private Future<?> futureGrabbing;
 
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
+		/* ！！！本函数内不要做需要长时间才能完成的工作，否则，会影响其他BUNDLE的初始化！！！  */
 		this.urlBlockinfo = (String) properties.get(PN_URL_BLKINFO);
 		this.urlStocksOfBlk = (String) properties.get(PN_URL_STKBLK);
 		
 		String s = (String) properties.get(PN_BLOCK_TYPES);
 		if(!Strings.isNullOrEmpty(s)) {
 			this.blockTypes = split(s.trim(), ",");
-			
 			futureGrabbing = asyncExecute(new Runnable() {
 
 				@Override
@@ -140,7 +140,7 @@ public class GrabBlockJob extends BaseGrabJob implements Job, ManagedService {
 	private void grabBlocks() {
 		for(String blkType : blockTypes) {
 			   grabBlkInfo(blkType);		
-			}
+		}
 	}
 
 

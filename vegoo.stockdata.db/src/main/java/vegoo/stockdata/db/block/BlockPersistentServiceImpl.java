@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.karaf.scheduler.Job;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.annotations.Activate;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
 import vegoo.jdbcservice.JdbcService;
@@ -23,37 +25,116 @@ import vegoo.stockdata.db.BlockPersistentService;
 import vegoo.stockdata.db.base.PersistentServiceImpl;
 import vegoo.stockdata.db.base.Redis;
 
-@Component (immediate = true)
+@Component (
+	immediate = true,
+	service = { BlockPersistentService.class,  ManagedService.class},			
+	configurationPid = "stockdata.db.block"
+)
 public class BlockPersistentServiceImpl extends PersistentServiceImpl implements BlockPersistentService, ManagedService {
 	private static final Logger logger = LoggerFactory.getLogger(BlockPersistentServiceImpl.class);
 
     @Reference private RedisService redis;
-
     @Reference private JdbcService db;
-	
-	@Override
-	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
-		logger.info("{} configured.", this.getClass().getName());
-	}
+    
+    private int _cacheLevel_Block = CACHE_LEVEL_NONE;
+    private int _cacheLevel_StkBlk = CACHE_LEVEL_NONE;
 	
     @Activate
     private void activate() {
-		logger.info("OSGI BUNDLE:{} activated.", this.getClass().getName());
+		/* ！！！本函数内不要做需要长时间才能完成的工作，否则，会影响其他BUNDLE的初始化！！！  */
 
-		//if(redis.hget(Redis.KEY_CACHED_TBLS, Redis.TABLENAME_BLOCK)==null) {
-		//   db.execute("call block_INIT_REDIS()");	// 初始化缓存
-		//}
+    	logger.info("OSGI BUNDLE:{} activated, cacheLevel={}", this.getClass().getName(), _cacheLevel_Block);
     }
+
+    @Override
+	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
+		/* ！！！本函数内不要做需要长时间才能完成的工作，否则，会影响其他BUNDLE的初始化！！！  */
+		
+    	String v = (String) properties.get(PN_CACHE_LEVEL);
+		logger.info("{} configured .{}:{}", this.getClass().getName(), PN_CACHE_LEVEL, v);
+		
+    	if(!Strings.isNullOrEmpty(v)) {
+	    	try {
+	    		_cacheLevel_Block= Integer.parseInt(v.trim());
+	    	}catch(Exception e) {
+	    		_cacheLevel_Block = CACHE_LEVEL_NONE;
+	    		logger.error("",e);
+	    	}
+    	}
+		
+    	// setCacheLevelBlock(_cacheLevel_Block);
+		
+/*		if(_cacheLevel_Block>CACHE_LEVEL_NONE) {
+			_cacheLevel_StkBlk = CACHE_LEVEL_NDX;
+			
+			setCacheLevelStockOfBlock(_cacheLevel_StkBlk);
+			
+			asyncExecute(new Runnable() {
+
+				@Override
+				public void run() {
+					initRedisCache();
+				}});
+		}
+*/
+	}
 	
-   @Override
+	
+   private boolean block_cached = false;
+   private boolean blkstk_cached = false;
+   private void initRedisCache() {
+		try {
+		    db.update("call block_INIT_REDIS(?)", 
+		    		   new Object[] {_cacheLevel_Block},
+		    		   new int[] {Types.INTEGER});	// 初始化缓存
+		    block_cached = true;
+		}catch(Exception e) {
+			setCacheLevelBlock(CACHE_LEVEL_NONE);
+			logger.error("",e);
+		}
+		
+		try {
+		    db.update("call stocksOfBlock_INIT_REDIS(?)", 
+		    		   new Object[] {_cacheLevel_StkBlk},
+		    		   new int[] {Types.INTEGER});	// 初始化缓存
+		    blkstk_cached = true;
+		}catch(Exception e) {
+			setCacheLevelStockOfBlock(CACHE_LEVEL_NONE);
+			logger.error("",e);
+		}
+   }
+
+   protected void setCacheLevelBlock(int cacheLevel) {
+       this._cacheLevel_Block = cacheLevel;
+	   super.setCacheLevel(redis, TBL_BLOCK, cacheLevel);
+	}
+   
+   protected int getCacheLevelBlock() {
+	   return block_cached ? _cacheLevel_Block : CACHE_LEVEL_NONE;
+   }
+
+   protected void setCacheLevelStockOfBlock(int cacheLevel) {
+       this._cacheLevel_StkBlk = cacheLevel;
+	   super.setCacheLevel(redis, TBL_STOCKOFBLOCK, cacheLevel);
+	}
+   
+   protected int getCacheLevelStockOfBlock() {
+	   return blkstk_cached ? _cacheLevel_StkBlk : CACHE_LEVEL_NONE;
+   }
+   
+    @Override
     public boolean existBlock(String blockUCode) {
-    	return existBlockByDB(blockUCode);
+	   if(getCacheLevelBlock()>CACHE_LEVEL_NONE) {
+		  return existBlockByRedis(blockUCode);
+	   }else {
+    	  return existBlockByDB(blockUCode);
+	   }
     }
-    
-/*    private boolean existBlockByRedis(String blockUCode) {
+
+    private boolean existBlockByRedis(String blockUCode) {
     	return redis.sismember(Redis.KEY_BLOCKS, blockUCode);
     }
-*/
+
 	private static String SQL_EXIST_BLKINFO = "select blkUCode from block where blkucode=?";
 	private boolean existBlockByDB(String blockUCode) {
     	try {
@@ -76,6 +157,7 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
     			   new int[]{Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR});
     	}catch(Exception e) {
     		logger.error("插入block记录出错：{}.{}.{}.{}/{}", marketid, blkCode, blkname, blkUCode, blkType);
+    		logger.error("",e);
     	}
     }
     
@@ -112,7 +194,7 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
      			   new Object[] { blkUcode, stkCode}, 
      			   new int[] {Types.VARCHAR, Types.VARCHAR});
      	}catch(Exception e) {
-     		logger.error("插入StockOfBlock是出错：blkUcode:{}, stkCode:{}, marketid:{}",blkUcode, stkCode);
+     		logger.error("删除StockOfBlock是出错：blkUcode:{}, stkCode:{}, marketid:{}",blkUcode, stkCode);
      		logger.error("", e);
      	}
 	}
@@ -134,8 +216,22 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
 		}
 	}
 	
+	@Override
+	public Set<String> getStockCodesOfBlock(String blkUcode){
+		if(getCacheLevelStockOfBlock()>CACHE_LEVEL_NONE) {
+			return getStocksOfBlockByRedis(blkUcode);
+		}else {
+			return getStocksOfBlockByDB(blkUcode);
+		}
+	}
+	
+	private Set<String> getStocksOfBlockByRedis(String blkUcode) {
+		String key = String.format("STKBLK_%s",blkUcode);
+		return redis.smembers(key);
+	}
+
 	private static final String SQL_SEL_STKC_BLK="select stockCode from stocksOfBlock where blkucode=?";
-	private Set<String> getStockCodesOfBlock(String blkUcode){
+	private Set<String> getStocksOfBlockByDB(String blkUcode){
 		Set<String> result = new HashSet<>();
 		try {
 			List<String> stockCodes = db.queryForList(SQL_SEL_STKC_BLK, 
@@ -143,6 +239,35 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
 					new int[] {Types.VARCHAR}, 
 					String.class);
 			result.addAll(stockCodes);
+		}catch(Exception e) {
+			logger.error("",e);
+		}
+		return result;
+	}
+	
+	@Override
+	public Set<String> getBlocksOfStock(String stockcode) {
+		if(getCacheLevelStockOfBlock()>CACHE_LEVEL_NONE) {
+			return getBlocksOfStockByRedis(stockcode);
+		}else {
+			return getBlocksOfStockByDB(stockcode);
+		}
+	}
+
+	private Set<String> getBlocksOfStockByRedis(String stockcode) {
+		String key = String.format("BLKSTK_%s",stockcode);
+		return redis.smembers(key);
+	}
+	
+	private static final String QRY_BLKS_STK="select blkucode from stocksOfBlock where stockCode=?";
+	private Set<String> getBlocksOfStockByDB(String stockcode){
+		Set<String> result = new HashSet<>();
+		try {
+			List<String> blockCodes = db.queryForList(QRY_BLKS_STK, 
+					new Object[] {stockcode}, 
+					new int[] {Types.VARCHAR}, 
+					String.class);
+			result.addAll(blockCodes);
 		}catch(Exception e) {
 			logger.error("",e);
 		}

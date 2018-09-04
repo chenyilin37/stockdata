@@ -26,6 +26,7 @@
     </feature>
 
     <feature name="vegoo-commons" version="${pom.version}">
+        <feature>scr</feature>
         <feature>spring-jdbc</feature>
         <feature>spring-tx</feature>
         
@@ -64,6 +65,7 @@
         <bundle dependency="true">mvn:com.google.guava/guava/23.0</bundle>
         <bundle dependency="true">mvn:org.apache.commons/commons-lang3/3.7</bundle>
 
+        <feature>vegoo-commons</feature>
         <feature>stockdata-db</feature>
         <bundle>mvn:${groupId}/vegoo.stockdata.crawler/${pom.version}</bundle>
     </feature>

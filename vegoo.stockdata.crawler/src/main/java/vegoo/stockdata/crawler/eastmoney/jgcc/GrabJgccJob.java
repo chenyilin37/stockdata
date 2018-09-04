@@ -47,11 +47,11 @@ import vegoo.stockdata.db.StockPersistentService;
  */
 
 @Component (
-		service = {Job.class,  ManagedService.class}, 
 		immediate = true, 
 		configurationPid = "stockdata.grab.jgcc",
+		service = { Job.class,  ManagedService.class},
 		property = {
-		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 0 1,8,18 * * ?",   // 静态信息，每天7，8，18抓三次
+		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 6-23 * * ?",   // 静态信息，每天7，8，18抓三次
 		    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
 		} 
 	) 
@@ -127,11 +127,13 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 	private static final String F_MX_TabRate = "TabRate".toLowerCase();
 	private static final String F_MX_TabProRate = "TabProRate".toLowerCase();
 	
-	private static final String PN_REPORT_DATES = "preload-reports";
+	// private static final String PN_REPORT_DATES = "preload-reports";
 	private static final String PN_URL_JGCC   = "url-jgcc";
 	private static final String PN_URL_JGCCMX   = "url-jgccmx";
 	private static final String PN_URL_SDLTGD   = "url-sdltgd";
 
+	private static final String PN_PRELOADS   = "preloads";
+	
 	//private static final String TAG_REPORTDATE = "<REPORT_DATE>";
 	//private static final String TAG_PAGENO     = "<PAGE_NO>";
 	//private static final String TAG_STOCKCODE  = "<STOCK_FCODE>"; //带市场后缀，如：000001.sz
@@ -139,8 +141,8 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 
     @Reference private JgccPersistentService dbJgcc;
     @Reference private JgccmxPersistentService dbJgccmx;
-    @Reference private GudongPersistentService dbGudong;
     @Reference private SdltgdPersistentService dbSdltgd;
+    @Reference private GudongPersistentService dbGudong;
     @Reference private StockPersistentService dbStock;
 	
 	private String jgccURL ;
@@ -157,20 +159,25 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		this.jgccmxURL = (String) properties.get(PN_URL_JGCCMX);
 		this.sdltgdURL = (String) properties.get(PN_URL_SDLTGD);
 
-		String reports   = (String) properties.get(PN_REPORT_DATES);
 		
 		logger.info("{} = {}", PN_URL_JGCC, jgccURL);
 		logger.info("{} = {}", PN_URL_JGCCMX, jgccmxURL);
 		logger.info("{} = {}", PN_URL_SDLTGD, sdltgdURL);	
-		logger.info("{} = {}", PN_REPORT_DATES, reports);
 		
-		if(!Strings.isNullOrEmpty(reports)) {
-			preloadReportData(reports.trim());
+		String preloads = (String) properties.get(PN_PRELOADS);
+		
+		if(!Strings.isNullOrEmpty(preloads)) {
+			preloadReportData(Integer.parseInt(preloads));
 		}
 	}
 
-	private void preloadReportData(String data) {
-		String[] reports = split(data, ",");
+	private void preloadReportData(int preloads) {
+		List<String> reports = new ArrayList<>();
+
+		Date now = new Date();
+		for(int i=0; i<4*preloads; ++i) {
+			reports.add(StockUtil.getReportDateAsString(now, -1 * i)) ;
+		}
 		
 		if(!Strings.isNullOrEmpty(jgccURL)) {
 			futureGrabJgcc = asyncExecute(new Runnable() {
@@ -179,11 +186,7 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 				public void run() {
 					try {
 						for(String report : reports) {
-							if(Strings.isNullOrEmpty(report)) {
-								continue;
-							}
-							
-							grabJgccData(report.trim());
+							grabJgccData(report);
 						}
 					}finally {
 						futureGrabJgcc = null;
@@ -199,10 +202,7 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 				public void run() {
 					try {
 						for(String report : reports) {
-							if(Strings.isNullOrEmpty(report)) {
-								continue;
-							}
-							grabJgccmxData(report.trim());
+							grabJgccmxData(report);
 						}
 					}finally {
 						futureGrabJgccmx = null;
@@ -218,11 +218,7 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 				public void run() {
 					try {
 						for(String report : reports) {
-							if(Strings.isNullOrEmpty(report)) {
-								continue;
-							}
-							
-							grabSdltgdData(report.trim());
+							grabSdltgdData(report);
 						}
 					}finally {
 						futureGrabTop10 = null;
@@ -230,11 +226,10 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 				}});
 		}
 	}
-	
 
 	@Override
 	protected void executeJob(JobContext context) {
-		String latestReportDate = StockUtil.getLatestReportDateAsString();
+		String latestReportDate = StockUtil.getReportDateAsString();
 
 		if(futureGrabJgcc == null ) {
 			grabJgccData(latestReportDate);
@@ -272,8 +267,6 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			grabJgccDataByLx(i, url);
 		}
 	}
-	
-
 
 	private void grabJgccDataByLx(int jglx, String urlPattern) {
 		String url = urlPattern.replaceAll(TAG_JGLX, String.valueOf(jglx) );
@@ -337,10 +330,10 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		
 		String scode = fieldValues.get(F_SCODE);
 		String rdate = fieldValues.get(F_RDATE);
-		String jglx  = fieldValues.get(F_JGLX);
+		String jgLX  = fieldValues.get(F_JGLX);
 		
-		if(scode==null || rdate==null || jglx==null) {
-			logger.error("机构持股数据项为空：{}={}, {}={}, {}={};", F_SCODE,scode, F_RDATE,rdate, F_JGLX, jglx);
+		if(scode==null || rdate==null || jgLX==null) {
+			logger.error("机构持股数据项为空：{}={}, {}={}, {}={};", F_SCODE,scode, F_RDATE,rdate, F_JGLX, jgLX);
 			return;
 		}
 		
@@ -352,7 +345,9 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			return;
 		}
 		
-		if(dbJgcc.existJgcc(scode, reportDate, Integer.valueOf(jglx))) {
+		int lx = Integer.valueOf(jgLX);
+		
+		if(dbJgcc.existJgcc(scode, reportDate, lx)) {
 			return;
 		}
 
@@ -366,7 +361,7 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		double shareHDNumChange = getFieldValue(fieldValues, F_ShareHDNumChange);
 		double rateChanges = getFieldValue(fieldValues, F_RateChange);
 		
-		dbJgcc.insertJgcc(scode,reportDate,jglx,cOUNT,cGChange,shareHDNum,vPosition,tabRate,lTZB,shareHDNumChange,rateChanges);
+		dbJgcc.insertJgcc(scode,reportDate,lx,cOUNT,cGChange,shareHDNum,vPosition,tabRate,lTZB,shareHDNumChange,rateChanges);
 	}
 
 	private static double getFieldValue(Map<String, String> fieldValues, String fieldName) {

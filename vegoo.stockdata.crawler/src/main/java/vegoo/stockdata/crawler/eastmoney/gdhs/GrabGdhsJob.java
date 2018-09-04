@@ -75,8 +75,9 @@ import vegoo.stockdata.db.StockPersistentService;
 @Component (
 	immediate = true, 
 	configurationPid = "stockdata.grab.gdhs",
+	service = { Job.class,  ManagedService.class},
 	property = {
-	    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 0 1,8,18 * * ?",   // 每小时更新一次
+	    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 6-23 * * ?",   // 每小时更新一次
 	    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
 	} 
 ) 
@@ -105,7 +106,9 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 	
     @Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
-		this.stockURL = (String) properties.get(PN_URL_STOCK);
+		/* ！！！本函数内不要做需要长时间才能完成的工作，否则，会影响其他BUNDLE的初始化！！！  */
+
+    	this.stockURL = (String) properties.get(PN_URL_STOCK);
 		this.latestURL = (String) properties.get(PN_URL_LATEST);
 
 		logger.info("{} = {}", PN_URL_LATEST, latestURL);
@@ -164,7 +167,6 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 	private void grabGdhsByPages(String urlPattern) {
 		int page = 0;
 		while(grabGdhsByPage(++page, urlPattern) > page) ;
-		
 	}
 
 	private int grabGdhsByPage(int page, String urlPattern) {
