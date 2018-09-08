@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
-import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
+import vegoo.stockdata.crawler.core.BaseGrabJob;
 import vegoo.stockdata.db.StockPersistentService;
 
 @Component (
@@ -23,7 +23,7 @@ import vegoo.stockdata.db.StockPersistentService;
 		configurationPid = "stockdata.grab.stock",
 		service = { Job.class,  ManagedService.class}, 
 		property = {
-		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 6-23/3 * * ?", //  静态信息，每小时1次
+		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 1,8,12,18 * * ?", //  静态信息，每小时1次
 		    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
 		} 
 	)
@@ -84,13 +84,24 @@ public class GrabStockJob extends BaseGrabJob implements Job, ManagedService{
 			if(fields.length != 4) {
 				// 正确的格式: 1,601606,N军工,6016061
 				logger.error("股票数据格式错误，应该类似“1,601606,N军工,6016061”，接收到的是: {}", stkInfo);
-				break;
+				continue;
 			}
 			
 			String marketid = fields[0];
 			String stkCode  = fields[1];
 			String stkName  = fields[2];
 			String stkUCode = fields[3];
+			
+			if(Strings.isNullOrEmpty(stkCode)) {
+				continue;
+			}
+			
+			stkCode = stkCode.trim();
+			if(stkCode.length() !=6 ) {
+				logger.info("股票代码错误：{} // {}", stkCode, stkInfo);
+				continue;
+			}
+			
 			
 			saveStockData(marketid, stkCode, stkName, stkUCode);
 		}

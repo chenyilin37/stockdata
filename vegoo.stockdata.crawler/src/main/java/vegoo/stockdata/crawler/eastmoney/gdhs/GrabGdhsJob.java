@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Types;
 import java.text.ParseException;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Dictionary;
 import java.util.HashSet;
@@ -32,10 +33,10 @@ import com.google.common.base.Strings;
 
 import vegoo.commons.JsonUtil;
 import vegoo.jdbcservice.JdbcService;
+import vegoo.stockdata.crawler.core.BaseGrabJob;
 import vegoo.stockdata.crawler.core.HttpClient;
 import vegoo.stockdata.crawler.core.HttpRequestException;
-import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
-import vegoo.stockdata.crawler.eastmoney.ReportDataGrabJob;
+import vegoo.stockdata.crawler.core.ReportDataGrabJob;
 import vegoo.stockdata.crawler.eastmoney.jgcc.JgccListDto;
 import vegoo.stockdata.crawler.eastmoney.jgcc.SdltgdDto;
 import vegoo.stockdata.db.GdhsPersistentService;
@@ -115,18 +116,21 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 		logger.info("{} = {}", PN_URL_STOCK, stockURL);
 		
 		if(!Strings.isNullOrEmpty(stockURL)) {
-			futureGrabbing = asyncExecute(new Runnable() {
-				@Override
-				public void run() {
-					try {
-					   grabGdhsByStocks();
-					}finally {
-					   futureGrabbing = null;
-					}
-				}});
+			asyncGrab();
 		}
 	}
 	
+    private void asyncGrab() {
+		futureGrabbing = asyncExecute(new Runnable() {
+			@Override
+			public void run() {
+				try {
+				   grabGdhsByStocks();
+				}finally {
+				   futureGrabbing = null;
+				}
+			}});
+    }
 	
 	private void grabGdhsByStocks() {
 		if(Strings.isNullOrEmpty(stockURL)) {
@@ -161,12 +165,28 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 		}
 		
 		grabGdhsByPages(latestURL);
+		
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(new Date());
+		int h = cal.get(Calendar.HOUR_OF_DAY);
+		if(h<3) { // 深夜再抓历史数据
+		    asyncGrab();
+		}
 	}
-	
 
-	private void grabGdhsByPages(String urlPattern) {
+	private void grabGdhsByPages(String url) {
+		int tatolPages = 0;
 		int page = 0;
-		while(grabGdhsByPage(++page, urlPattern) > page) ;
+		while(true) {
+		   int pc = grabGdhsByPage(++page, url); 
+		   if(pc>tatolPages) {
+			  tatolPages = pc;
+		   }
+		   if( page >= tatolPages) {
+			   break;
+		   }
+		}
+
 	}
 
 	private int grabGdhsByPage(int page, String urlPattern) {
@@ -185,7 +205,19 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 
 	private void saveGdhsData(List<GdhsItemDto> items) {
 		for(GdhsItemDto item : items) {
-			if(dbGdhs.existGDHS(item.getSecurityCode(), item.getEndDate())) {
+			String stkCode = item.getSecurityCode();
+			if(Strings.isNullOrEmpty(stkCode)) {
+				continue;
+			}
+			
+			stkCode = stkCode.trim();
+			if(stkCode.length() !=6 ) {
+				logger.info("股票代码错误：{} // {}", stkCode, JsonUtil.toJson(item));
+				continue;
+			}
+			
+			int dataTag = item.hashCode();
+			if(!dbGdhs.isNewGDHS(stkCode, item.getEndDate(), dataTag, true)) {
 				continue;
 			}
 			
@@ -193,7 +225,7 @@ public class GrabGdhsJob extends ReportDataGrabJob implements Job, ManagedServic
 				dbGdhs.insertGdhs(item.getSecurityCode(), item.getEndDate(), item.getHolderNum(), item.getPreviousHolderNum(), item.getHolderNumChange(), 
 					   item.getHolderNumChangeRate(), item.getRangeChangeRate(), item.getPreviousEndDate(), 
 					   item.getHolderAvgCapitalisation(), item.getHolderAvgStockQuantity(), item.getTotalCapitalisation(), 
-					   item.getCapitalStock(), item.getNoticeDate());
+					   item.getCapitalStock(), item.getNoticeDate(),dataTag);
 			}catch(Exception e) {
 				logger.error("保存股东户数数据是出错: {}",JsonUtil.toJson(item), e);
 			}

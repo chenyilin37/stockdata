@@ -146,6 +146,19 @@ public class SdltgdDto {
 		BDSUM = bDSUM;
 	}                
 
+	@Override
+	public int hashCode() {
+		String data = String.format("%s-%tF-%s-%d-%d-%d-%f", 
+				getSCODE(),
+				getRDATE(),
+				getSHAREHDCODE(),
+				Math.round(getRANK()),
+				Math.round(getSHAREHDNUM()),
+				Math.round(getLTAG()),
+				getZB());
+		
+		return data.hashCode();
+	}
 	
 	
 }

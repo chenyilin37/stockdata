@@ -19,7 +19,7 @@ import com.google.common.base.Strings;
 import vegoo.commons.JsonUtil;
 import vegoo.stockdata.core.model.FhsgItemDao;
 import vegoo.stockdata.core.utils.StockUtil;
-import vegoo.stockdata.crawler.eastmoney.ReportDataGrabJob;
+import vegoo.stockdata.crawler.core.ReportDataGrabJob;
 import vegoo.stockdata.db.FhsgPersistentService;
 import vegoo.stockdata.db.StockPersistentService;
 
@@ -110,8 +110,17 @@ public class GrabFhsgJob extends ReportDataGrabJob implements Job, ManagedServic
 	
 	
 	private void grabFhsgByPages(String urlPattern) {
+		int tatolPages = 0;
 		int page = 0;
-		while(grabFhsgByPage(++page, urlPattern) > page) ;
+		while(true) {
+		   int pc = grabFhsgByPage(++page, urlPattern); 
+		   if(pc>tatolPages) {
+			  tatolPages = pc;
+		   }
+		   if( page >= tatolPages) {
+			   break;
+		   }
+		}
 	}
 
 	private int grabFhsgByPage(int page, String urlPattern) {
@@ -130,9 +139,6 @@ public class GrabFhsgJob extends ReportDataGrabJob implements Job, ManagedServic
 
 	private void saveFhsgData(List<FhsgItemDto> items) {
 		for(FhsgItemDto dto : items) {
-			if(dbFhsg.existFhsg(dto.getCode(), dto.getReportingPeriod())) {
-				continue;
-			}
 			
 			FhsgItemDao dao = new FhsgItemDao();
 			
@@ -159,6 +165,11 @@ public class GrabFhsgJob extends ReportDataGrabJob implements Job, ManagedServic
 			dao.setResultsbyDate(dto.getResultsbyDate());
 			dao.setProjectProgress(dto.getProjectProgress());
 			dao.setAllocationPlan(dto.getAllocationPlan());			
+			
+			int dataTag = dao.hashCode();
+			if(!dbFhsg.isNewFhsg(dto.getCode(), dto.getReportingPeriod(), dataTag, true)) {
+				continue;
+			}
 			
 			try {
 				dbFhsg.insertFhsg(dao);

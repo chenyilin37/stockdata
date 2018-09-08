@@ -33,7 +33,7 @@ import com.google.common.base.Strings;
 import vegoo.commons.JsonUtil;
 import vegoo.jdbcservice.JdbcService;
 import vegoo.stockdata.core.utils.StockUtil;
-import vegoo.stockdata.crawler.eastmoney.ReportDataGrabJob;
+import vegoo.stockdata.crawler.core.ReportDataGrabJob;
 import vegoo.stockdata.db.GudongPersistentService;
 import vegoo.stockdata.db.JgccPersistentService;
 import vegoo.stockdata.db.JgccmxPersistentService;
@@ -149,17 +149,20 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 	private String jgccmxURL ;
 	private String sdltgdURL ;
 	
+	private int preload_years = 1;
+	
     private Future<?> futureGrabJgcc;
     private Future<?> futureGrabJgccmx;
     private Future<?> futureGrabTop10;
 	
+    // private int stateTag;
+    
 	@Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
 		this.jgccURL = (String) properties.get(PN_URL_JGCC);
 		this.jgccmxURL = (String) properties.get(PN_URL_JGCCMX);
 		this.sdltgdURL = (String) properties.get(PN_URL_SDLTGD);
 
-		
 		logger.info("{} = {}", PN_URL_JGCC, jgccURL);
 		logger.info("{} = {}", PN_URL_JGCCMX, jgccmxURL);
 		logger.info("{} = {}", PN_URL_SDLTGD, sdltgdURL);	
@@ -167,17 +170,19 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		String preloads = (String) properties.get(PN_PRELOADS);
 		
 		if(!Strings.isNullOrEmpty(preloads)) {
-			preloadReportData(Integer.parseInt(preloads));
+			preload_years = Integer.parseInt(preloads);
 		}
+		preloadReportData(preload_years);
 	}
 
-	private void preloadReportData(int preloads) {
+	private void preloadReportData(int years) {
 		List<String> reports = new ArrayList<>();
 
 		Date now = new Date();
-		for(int i=0; i<4*preloads; ++i) {
+		for(int i=0; i < 4*years ; ++i) {
 			reports.add(StockUtil.getReportDateAsString(now, -1 * i)) ;
 		}
+		
 		
 		if(!Strings.isNullOrEmpty(jgccURL)) {
 			futureGrabJgcc = asyncExecute(new Runnable() {
@@ -195,22 +200,6 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 				}});
 		}
 		
-		if(!Strings.isNullOrEmpty(jgccmxURL)) {
-			futureGrabJgccmx = asyncExecute(new Runnable() {
-
-				@Override
-				public void run() {
-					try {
-						for(String report : reports) {
-							grabJgccmxData(report);
-						}
-					}finally {
-						futureGrabJgccmx = null;
-					}
-				}});
-		}
-		
-		
 		if(!Strings.isNullOrEmpty(sdltgdURL)) {
 			futureGrabTop10 = asyncExecute(new Runnable() {
 
@@ -222,6 +211,21 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 						}
 					}finally {
 						futureGrabTop10 = null;
+					}
+				}});
+		}
+		
+		if(!Strings.isNullOrEmpty(jgccmxURL)) {
+			futureGrabJgccmx = asyncExecute(new Runnable() {
+
+				@Override
+				public void run() {
+					try {
+						for(String report : reports) {
+							grabJgccmxData(report);
+						}
+					}finally {
+						futureGrabJgccmx = null;
 					}
 				}});
 		}
@@ -237,19 +241,19 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			futureGrabJgcc = null;
 			grabJgccData(latestReportDate);
 		}
-
-		if(futureGrabJgccmx == null ) {
-			grabJgccmxData(latestReportDate);
-		}else if(futureGrabJgccmx.isDone() || futureGrabJgccmx.isCancelled()) {
-			futureGrabJgccmx = null;
-			grabJgccmxData(latestReportDate);
-		}
 		
 		if(futureGrabTop10 == null ) {
 			grabSdltgdData(latestReportDate);
 		}else if(futureGrabTop10.isDone() || futureGrabTop10.isCancelled()) {
 			futureGrabTop10 = null;
 			grabSdltgdData(latestReportDate);
+		}
+		
+		if(futureGrabJgccmx == null ) {
+			grabJgccmxData(latestReportDate);
+		}else if(futureGrabJgccmx.isDone() || futureGrabJgccmx.isCancelled()) {
+			futureGrabJgccmx = null;
+			grabJgccmxData(latestReportDate);
 		}
 	}
 
@@ -259,20 +263,40 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			logger.error("没有在配置文件中设置{}参数！", PN_URL_JGCC);
 			return;
 		}
-		
-		String url = jgccURL.replaceAll(TAG_REPORTDATE, reportDate);
-		
-		// 机构类型代码：1-基金 2-QFII 3-社保 4-券商 5-保险 6-信托
-		for(int i=1; i<=6; ++i) {
-			grabJgccDataByLx(i, url);
-		}
+
+		futureGrabJgcc = asyncExecute(new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+					String url = jgccURL.replaceAll(TAG_REPORTDATE, reportDate);
+					
+					// 机构类型代码：1-基金 2-QFII 3-社保 4-券商 5-保险 6-信托
+					for(int i=1; i<=6; ++i) {
+						grabJgccDataByLx(i, url);
+					}
+				}finally {
+					futureGrabJgcc = null;
+				}
+				
+			}});
 	}
 
 	private void grabJgccDataByLx(int jglx, String urlPattern) {
 		String url = urlPattern.replaceAll(TAG_JGLX, String.valueOf(jglx) );
-		
+
+		int tatolPages = 0;
 		int page = 0;
-		while(grabJgccDataByPage(++page, url) > page) ;
+		while(true) {
+		   int pc = grabJgccDataByPage(++page, url); 
+		   if(pc>tatolPages) {
+			  tatolPages = pc;
+		   }
+		   if( page >= tatolPages) {
+			   break;
+		   }
+		}
+		
 	}
 	
 	private int grabJgccDataByPage(int page, String urlPattern) {
@@ -337,6 +361,12 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			return;
 		}
 		
+		scode = scode.trim();
+		if(scode.length() !=6 ) {
+			logger.info("股票代码错误：{} // {}", scode,data);
+			return;
+		}
+
 		Date reportDate = null;
 		try {
 			reportDate = JsonUtil.parseDate(rdate);
@@ -347,8 +377,11 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		
 		int lx = Integer.valueOf(jgLX);
 		
-		if(dbJgcc.existJgcc(scode, reportDate, lx)) {
-			return;
+		int dataTag = data.hashCode();
+		
+		// 数据是逐步公布，需要同步更新
+		if(!dbJgcc.isNewJgcc(scode, reportDate, lx, dataTag, true)) {
+		   return;
 		}
 
 		String cGChange = fieldValues.get(F_CGChange);
@@ -361,7 +394,7 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		double shareHDNumChange = getFieldValue(fieldValues, F_ShareHDNumChange);
 		double rateChanges = getFieldValue(fieldValues, F_RateChange);
 		
-		dbJgcc.insertJgcc(scode,reportDate,lx,cOUNT,cGChange,shareHDNum,vPosition,tabRate,lTZB,shareHDNumChange,rateChanges);
+		dbJgcc.insertJgcc(scode,reportDate,lx,cOUNT,cGChange,shareHDNum,vPosition,tabRate,lTZB,shareHDNumChange,rateChanges, dataTag);
 	}
 
 	private static double getFieldValue(Map<String, String> fieldValues, String fieldName) {
@@ -380,14 +413,22 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			logger.error("没有在配置文件中设置{}参数！", PN_URL_JGCCMX);
 			return;
 		}
+
+		futureGrabJgccmx = asyncExecute(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					List<String> stocks = dbStock.getAllStockCodes();
+					
+					// 抓去机构持仓明细
+					grabJgccmxData(reportDate, stocks);
+				}finally {
+					futureGrabJgccmx = null;
+				}
+			}});
 		
-		List<String> stocks = dbStock.getAllStockCodes();
-		
-		// 抓去机构持仓明细
-		grabJgccmxData(reportDate, stocks);
 	}
 
-	
 	private void grabJgccmxData(String reportDate, List<String> stocks) {
 		String url = jgccmxURL.replaceAll(TAG_REPORTDATE, reportDate);
 
@@ -399,9 +440,19 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 
 	private void grabJgccmxData(String urlPattern, String stkFcode) {
 		String url = urlPattern.replaceAll(TAG_STOCKFCODE, stkFcode );
-
+        
+		int tatolPages = 0;
+		
 		int page = 0;
-		while(grabJgccmxDataByPage(++page, url) > page) ;
+		while(true) {
+		   int pc = grabJgccmxDataByPage(++page, url); 
+		   if(pc>tatolPages) {
+			  tatolPages = pc;
+		   }
+		   if( page >= tatolPages) {
+			   break;
+		   }
+		}
 	}
 
 	private int grabJgccmxDataByPage(int page, String urlPattern) {
@@ -410,13 +461,13 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		JgccListDto listDto = requestData(url, JgccListDto.class, "获取机构持仓明细");
 
 		if(listDto == null) {
-			logger.error("没有抓取到Jgccmx数据, URL:{}");
+			logger.error("没有抓取到Jgccmx数据, URL:{}", url);
 			return 0;
 		}
 			
 		JgccListDataDto[] dataDtos = listDto.getData();
 		if(dataDtos==null || dataDtos.length==0) {
-			logger.error("没有抓取到Jgccmx数据, URL:{}");
+			logger.error("没有抓取到Jgccmx数据, URL:{}", url);
 			return 0;
 		}
 		
@@ -424,8 +475,8 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		
 		List<String> items = dataDto.getData();
 		
-		if(items==null || items.size()==0) {
-			// logger.error("没有抓取到Jgccmx数据, URL:{} DATA: {}", url, JsonUtil.toJson(dataDto));
+		if(items==null || items.size()==0) {// API正常，但没有数据
+			// logger.error("抓取到Jgccmx数据没有明细条目(data[]为空), URL:{}\n DATA: {}", url, JsonUtil.toJson(dataDto));
 			return 0;
 		}
 
@@ -443,9 +494,6 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		String[] fieldNames = split(fieldNameList, ",") ;
 		
 		for(String item : items) {
-			if(Strings.isNullOrEmpty(item)) {
-				continue;
-			}
 		    processJgccmxData(splitSymbol, fieldNames, item.trim());
 		}
 	}
@@ -467,6 +515,7 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		String[] stkcodeFields = split(stkFCodes, ".");
 		if(stkcodeFields.length != 2) {
 			logger.error("机构持股明细数据股票代码未带市场后缀，如:.sh/.sz,数据结构可能发生了变化：{}",stkFCodes );
+		    return;
 		}
 		
 		String scode = stkcodeFields[0];
@@ -486,7 +535,8 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			return;
 		}
 		
-		if(dbJgccmx.existJgccmx(scode, reportDate, shcode)) {
+		int dataTag = data.hashCode();
+		if(!dbJgccmx.isNewJgccmx(scode, reportDate, shcode, dataTag, true)) {
 			return;
 		}
 		
@@ -503,7 +553,7 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 		double TabRate = getFieldValue(fieldValues, F_MX_TabRate);
 		double TabProRate = getFieldValue(fieldValues, F_MX_TabProRate);
 
-		dbJgccmx.insertJgccmx(scode,reportDate,shcode,indtCode,lxdm,ShareHDNum,Vposition,TabRate,TabProRate);	
+		dbJgccmx.insertJgccmx(scode,reportDate,shcode,indtCode,lxdm,ShareHDNum,Vposition,TabRate,TabProRate,dataTag);	
 
 		dbGudong.saveGudong(shcode, SHName, gdlx, lxdm, indtCode, instSName);
 	}
@@ -516,14 +566,22 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 			logger.error("没有在配置文件中设置{}参数！", PN_URL_SDLTGD);
 			return;
 		}
-
-		String url = sdltgdURL.replaceAll(TAG_REPORTDATE, reportDate);
-
-		List<String> stocks = dbStock.getAllStockCodes();
 		
-		for(String stkcode : stocks) {
-			grabSdltgdData(url, stkcode);
-		}
+		futureGrabTop10 = asyncExecute(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					String url = sdltgdURL.replaceAll(TAG_REPORTDATE, reportDate);
+
+					List<String> stocks = dbStock.getAllStockCodes();
+					
+					for(String stkcode : stocks) {
+						grabSdltgdData(url, stkcode);
+					}
+				}finally {
+					futureGrabTop10 = null;
+				}
+			}});
 	}
 	
 	private void grabSdltgdData(String urlPattern, String stkcode) {
@@ -531,7 +589,11 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 
 		SdltgdDto[] listDtos = requestData(url, SdltgdDto[].class, "获取十大流通股东");
 		
-		if(listDtos == null || listDtos.length == 0) {
+		if(listDtos == null ) {
+			logger.error("没有抓取到十大股东数据, URL:{}", url);
+			return;
+		}
+		if(listDtos.length == 0) { // API正常，但没有数据
 			return;
 		}
 		
@@ -545,14 +607,17 @@ public class GrabJgccJob extends ReportDataGrabJob implements Job, ManagedServic
 	}
 
 	private void processSdltgdData(SdltgdDto dto) {
-		if(dbSdltgd.existSdltgd(dto.getSCODE(),dto.getRDATE(),dto.getSHAREHDCODE())) {
+		int dataTag = dto.hashCode();
+		
+
+		if(!dbSdltgd.isNewSdltgd(dto.getSCODE(),dto.getRDATE(),dto.getSHAREHDCODE(),dataTag, true)) {
 			return;
 		}
 		
 		dbSdltgd.insertSdltgd(dto.getCOMPANYCODE(), dto.getSHAREHDNAME(),
 				dto.getSHAREHDTYPE(), dto.getSHARESTYPE(), dto.getRANK(), dto.getSCODE(), 
 				dto.getRDATE(), dto.getSHAREHDNUM(), dto.getLTAG(), dto.getZB(),dto.getNDATE(),
-				dto.getBZ(),dto.getBDBL(),dto.getSHAREHDCODE(),dto.getSHAREHDRATIO(),dto.getBDSUM());
+				dto.getBZ(),dto.getBDBL(),dto.getSHAREHDCODE(),dto.getSHAREHDRATIO(),dto.getBDSUM(),dataTag);
 		
 		dbGudong.saveGudong(dto.getSHAREHDCODE(),dto.getSHAREHDNAME(),dto.getSHAREHDTYPE());
 	}

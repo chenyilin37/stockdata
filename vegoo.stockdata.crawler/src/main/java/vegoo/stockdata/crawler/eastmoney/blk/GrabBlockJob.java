@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
-import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
+import vegoo.stockdata.crawler.core.BaseGrabJob;
 import vegoo.stockdata.db.BlockPersistentService;
 
 
@@ -57,7 +57,7 @@ import vegoo.stockdata.db.BlockPersistentService;
 	configurationPid = "stockdata.grab.block",
 	service = { Job.class,  ManagedService.class}, 
 	property = {
-	    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 6-23/3 * * ?", //  静态信息，每天7，8，18抓三次
+	    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 1,8,12,18 * * ?", //  静态信息，每天7，8，18抓三次
 	    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
 	} 
 )

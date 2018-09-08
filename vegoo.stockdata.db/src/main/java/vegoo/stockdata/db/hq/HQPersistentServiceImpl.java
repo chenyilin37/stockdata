@@ -126,6 +126,19 @@ public class HQPersistentServiceImpl extends PersistentServiceImpl implements HQ
 				ps.setDouble(12, item.getLClose());
 			}});		
 	}
+
+	private static final String QRY_CLOSEPRICE="select close from kdaydata where SCode=? and transDate=?";
+	@Override
+	public double getClosePrice(String sCode, Date transDate) {
+		try {
+			return db.queryForObject(QRY_CLOSEPRICE, 
+						new Object[] {sCode, transDate},
+						new int[] {Types.VARCHAR, Types.DATE},
+						Double.class);
+		}catch(Exception e) {
+			return 0;
+		}
+	}
 	
 	
 }

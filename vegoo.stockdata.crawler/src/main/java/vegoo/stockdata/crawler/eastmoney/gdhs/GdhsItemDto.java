@@ -151,5 +151,16 @@ public class GdhsItemDto {
 	public void setNoticeDate(Date noticeDate) {
 		NoticeDate = noticeDate;
 	}
+	
+	@Override
+	public int hashCode() {
+		String data = String.format("%s-%tF-%d-%d-%d", 
+				getSecurityCode(),
+				getEndDate(),
+				Math.round(getHolderNum()),
+				Math.round(getPreviousHolderNum()),
+				Math.round(getHolderNumChange()));
+		return data.hashCode();
+	}
 
 }

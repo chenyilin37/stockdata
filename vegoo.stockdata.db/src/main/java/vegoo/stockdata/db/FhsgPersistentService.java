@@ -14,4 +14,8 @@ public interface FhsgPersistentService {
 
 	double calcLClose(String stockcode, Date transdate, double lClose);
 
+	boolean isNewFhsg(String code, Date rDate, int dataTag, boolean deleteOld);
+
+	void settleFhsg(boolean reset);
+
 }

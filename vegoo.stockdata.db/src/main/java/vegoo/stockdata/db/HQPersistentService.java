@@ -11,5 +11,6 @@ public interface HQPersistentService {
 	Date getLastTradeDate(String stockCode, Date endDate);
 	
 	void saveKDayData(List<KDayDao> newItems);
+	double getClosePrice(String sCode, Date transDate);
 
 }

@@ -22,23 +22,22 @@ import vegoo.commons.JsonUtil;
 import vegoo.stockdata.core.model.KDayDao;
 import vegoo.stockdata.core.model.StockCapitalDao;
 import vegoo.stockdata.core.utils.StockUtil;
-import vegoo.stockdata.crawler.eastmoney.BaseGrabJob;
+import vegoo.stockdata.crawler.core.BaseGrabJob;
 import vegoo.stockdata.db.FhsgPersistentService;
 import vegoo.stockdata.db.HQPersistentService;
 import vegoo.stockdata.db.StockPersistentService;
 
-
 @Component (
 		immediate = true, 
-		configurationPid = "stockdata.grab.hangqing",
+		configurationPid = "stockdata.grab.historyhq",
 		service = { Job.class,  ManagedService.class}, 
 		property = {
-		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 * 0-5,16,23 * * ?", //  静态信息，每天7，8，18抓三次
-		    // Scheduler.PROPERTY_SCHEDULER_CONCURRENT + "= false"
+			//!!!!   历史日线数据只在收盘后抓去, 注意定时  !!!!	
+		    Scheduler.PROPERTY_SCHEDULER_EXPRESSION + "= 0 0 0-5/3,16-23/3 * * ?", 
 		} 
 	)
-public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
-	private static final Logger logger = LoggerFactory.getLogger(GrabHangqingJob.class);
+public class GrabHistoryHQJob extends BaseGrabJob implements Job,ManagedService {
+	private static final Logger logger = LoggerFactory.getLogger(GrabHistoryHQJob.class);
 
 	//static final String PN_URL_LIVEDATA   = "url-livedata";
 	static final String PN_URL_KDAY   = "url-kday";
@@ -67,7 +66,7 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 			@Override
 			public void run() {
 				try {
-				   grabHistoryKDay();
+				    grabHistoryKDay();
 				}finally {
 					futureGrabbing = null;
 				}
@@ -79,7 +78,6 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 		if((futureGrabbing == null)||(futureGrabbing.isDone() || futureGrabbing.isCancelled())) {
 			grabHistoryKDay();
 		}
-		
 	}
 	
 	private void grabHistoryKDay() {
@@ -96,20 +94,18 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 		grabHistoryKDay(stockCodes);
 	}
 
-	
 	private void grabHistoryKDay(List<String> stockCodes) {
-		Date curTransDate = StockUtil.getLastTransDate(true);
+		Date curTransDate = StockUtil.getLastTransDate(true); // 已经收市时的最后一个交易日
 		for(String stkcode : stockCodes) {
-			Date lastDate = dbHQ.getLastTradeDate(stkcode);
+			Date dbLastDate = dbHQ.getLastTradeDate(stkcode, curTransDate);
 			
-			if(curTransDate.equals(lastDate)) {
-				continue;
+			if(dbLastDate!=null && dbLastDate.before(curTransDate)) {
+				grabHistoryKDay(stkcode, dbLastDate);			
 			}
 			
-			grabHistoryKDay(stkcode, lastDate);
+
 		}
 	}
-
 
 	private void grabHistoryKDay(String stkcode, Date lastDate) {
 		String stkUCode = getStockCodeWithMarketId(stkcode);
@@ -147,7 +143,6 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 			dao.setStockCode(stkcode);
 			dao.setTransDate(dto.getTime());
 			dao.setLtg(dto.getLtg());
-
 			
 			dbStock.insertStockCapital(dao);
 		}
@@ -178,12 +173,11 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 			String[] flds = split(item, ",");
 			if(flds.length != 8 && flds.length != 9) {
 				logger.error("日线数据格式有变化，应该类似：2008-05-13,1.80,2.02,2.02,1.79,49982,159771423,12.7%，实际为：{} URL: {}", item, url);
-			    return null;
+			    continue;
 			}
 			
 			try {
 				Date tdate =  JsonUtil.parseDate(flds[0]);
-				// String zhenfu = "-".equals(flds[7].trim())?"0":flds[7].replaceAll("%", "");
 
 				KDayDao dao = new KDayDao();
 				
@@ -224,10 +218,10 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 		}
 		return result;
 	}
-	
 
 	private double calcTurnoverRate(Date tdate, double volume, StockKDayFlowDto[] flow) {
 		double ltg = 0;
+		
 		for(int i=0; i<flow.length; ++i) {
 			StockKDayFlowDto dto = flow[flow.length-1-i];
 			if(!tdate.before(dto.getTime())) {
@@ -236,7 +230,7 @@ public class GrabHangqingJob extends BaseGrabJob implements Job,ManagedService {
 			}
 		}
 
-		if(ltg==0) {
+		if(ltg == 0) {
 			return 0;
 		}
 		

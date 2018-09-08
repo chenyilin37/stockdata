@@ -2,7 +2,7 @@ package vegoo.stockdata.core.model;
 
 import java.util.Date;
 
-public class FhsgItemDao {
+public class FhsgItemDao extends TaggedDao{
 	// private String  MarketType; 
 	private String  SCode; 
 	// private String  Name; 
@@ -29,6 +29,7 @@ public class FhsgItemDao {
 	private String  ProjectProgress;    //方案进度
 	private String  AllocationPlan;   // 分配预案
 	
+	private double adjustPrice;
 	
 	public String getSCode() {
 		return SCode;
@@ -167,6 +168,35 @@ public class FhsgItemDao {
 	}
 	public void setYCQTS(double yCQTS) {
 		YCQTS = yCQTS;
+	}
+	
+	public int getDataTag() {
+		return hashCode();
+	}
+
+	@Override
+	public int hashCode() {
+		String data = String.format("%s-%tF-%f-%f-%f-%f-%f-%tF-%tF-%tF-%s", 
+				   SCode, 
+				   RDate,   // 报告期
+				   SZZBL,    // 送转总比例
+				   SGBL,     // 送股比例
+				   ZGBL, 	// 转股比例
+				   XJFH, 	// 现金分红
+				   GXL,  	// 股息率
+				   YAGGR,   // 预案公告日
+				   GQDJR,   // 股权登记日
+				   CQCXR,   //股权除息日
+				   ProjectProgress    //方案进度
+				);
+		
+		return data.hashCode();
+	}
+	public double getAdjustPrice() {
+		return adjustPrice;
+	}
+	public void setAdjustPrice(double adjustPrice) {
+		this.adjustPrice = adjustPrice;
 	}
 	
 	

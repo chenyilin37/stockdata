@@ -41,29 +41,56 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 		
 	}
 	
-    private static String SQL_EXIST_JGCC = "select SCode from jgcc where SCode=? and RDate=? and lx=?";
     public boolean existJgcc(String stkcode, Date rdate, int jglx) {
-    	try {
-    		String val = db.queryForObject(SQL_EXIST_JGCC, new Object[] {stkcode, rdate, jglx},
-    				new int[] {Types.VARCHAR,Types.DATE, Types.INTEGER}, String.class);
-		    return  val != null;
-		}catch(EmptyResultDataAccessException e) {
-			return false;
-    	}catch(Exception e) {
-    		logger.error("",e);
-    		return false;
-    	}
+    	Integer dataTag = queryDataTag(stkcode, rdate, jglx);
+    	return dataTag != null;
     }
+    
+
+	@Override
+	public boolean isNewJgcc(String scode, Date reportDate, int lx, int dataTag, boolean deleteOld) {
+    	Integer oldDataTag = queryDataTag(scode, reportDate, lx);
+		
+		if(deleteOld && (oldDataTag != null) && (oldDataTag != dataTag)) {
+			deleteJgcc(scode, reportDate, lx);
+		}
+		
+		return oldDataTag==null || dataTag != oldDataTag;
+	}
 	
-	private static final String SQL_INS_JGCC = "insert into jgcc(SCODE,RDATE,LX,COUNT,CGChange,ShareHDNum,VPosition,TabRate,LTZB,ShareHDNumChange,RateChange,closeprice) "
-			                                            + "values (?,?,?,?,?,?,?,?,?,?,?,?)";
+	private static String SQL_DEL_JGCC = "delete from jgcc where SCode=? and RDate=? and lx=?";
+    private void deleteJgcc(String scode, Date reportDate, int lx) {
+		try {
+			 db.update(SQL_DEL_JGCC, 
+					 new Object[] {scode, reportDate, lx},
+					 new int[] {Types.VARCHAR,Types.DATE, Types.INTEGER});
+		}catch(Exception e) {
+			logger.error("",e);
+		}
+	}
+
+	private static String SQL_QRY_DATATAG = "select dataTag from jgcc where SCode=? and RDate=? and lx=?";
+    private Integer queryDataTag(String stkcode, Date rdate, int jglx) {
+		try {
+			return db.queryForObject(SQL_QRY_DATATAG, new Object[] {stkcode, rdate, jglx},
+					new int[] {Types.VARCHAR,Types.DATE, Types.INTEGER}, Integer.class);
+		}catch(EmptyResultDataAccessException e) {
+			return null;
+		}catch(Exception e) {
+			logger.error("",e);
+			return null;
+		}
+	}
+    
+	private static final String SQL_INS_JGCC = "insert into jgcc(SCODE,RDATE,LX,COUNT,CGChange,ShareHDNum,VPosition,TabRate,LTZB,ShareHDNumChange,RateChange,closeprice,dataTag) "
+			                                            + "values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	//private static final String[] JGCC_FLDS_DB = {F_SCODE,F_RDATE,F_JGLX, F_COUNT, F_CGChange, F_ShareHDNum,F_VPosition,F_TabRate,F_LTZB,F_ShareHDNumChange,F_RateChange}; //LTZBChange
 	//private static final String[] JGCC_FLDS_JS = {F_SCODE,F_RDATE,F_JGLX, F_COUNT, F_CGChange, F_ShareHDNum,F_VPosition,F_TabRate,F_LTZB,F_ShareHDNumChange,F_RateChange}; //LTZBChange
-	private static final int[] JGCC_FLD_Types  = {Types.VARCHAR,Types.DATE, Types.INTEGER,Types.DOUBLE,Types.VARCHAR,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE};
+	private static final int[] JGCC_FLD_Types  = {Types.VARCHAR,Types.DATE, Types.INTEGER,Types.DOUBLE,Types.VARCHAR,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE,Types.DOUBLE, Types.INTEGER};
 	
 	public void insertJgcc(String sCODE, Date rDATE, int jglx,double cOUNT,
 			String cGChange, double shareHDNum,double vPosition,double tabRate,
-			double lTZB,double shareHDNumChange,double rateChanges) {
+			double lTZB,double shareHDNumChange,double rateChanges, int dataTag) {
 
 		if(shareHDNum <1) {  // 小于1的记录，丢弃
 		   return;	
@@ -77,7 +104,7 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 		
 		try {
 			db.update( SQL_INS_JGCC, 
-					new Object[] {sCODE,rDATE,jglx,cOUNT,cGChange,shareHDNum,vPosition,tabRate,lTZB,shareHDNumChange,rateChanges,closeprice}, 
+					new Object[] {sCODE,rDATE,jglx,cOUNT,cGChange,shareHDNum,vPosition,tabRate,lTZB,shareHDNumChange,rateChanges,closeprice,dataTag}, 
 					  JGCC_FLD_Types);
 		}catch(Exception e) {
 			logger.error("",e);
@@ -88,7 +115,11 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 	}
 
 	@Override
-	public void settleJgcc() {
+	public void settleJgcc(boolean reset) {
+		if(reset) {
+			restJgcc();
+		}
+		
 		// 调整报告期对应的交易日；
 		settleEndTradeDate();
 		// 调整上期数据；
@@ -117,16 +148,15 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 		}
 	}
 
-	private int processJgcc(Date rptDate) {
+	private void processJgcc(Date rptDate) {
 		List<Map<String, Object>> items = queryNullTransDateOfJgcc(rptDate);
 		if(items==null||items.isEmpty()) {
-			return 0;
+			return ;
 		}
 		
 		for(Map<String, Object> item:items) {
 		  updateNullTransDateOfJgcc(rptDate, item);
 		}
-		return items.size();
 		
 	}
 
@@ -191,7 +221,7 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 	}
 
 	private void settlePrevDataByReportDate(Date reportDate) {
-		List<Map<String, Object>> items = queryJgccWithNullPreRDate(reportDate);
+		List<Map<String, Object>> items = queryJgccWithNullPrevRDate(reportDate);
 		if(items==null||items.isEmpty()) {
 			return ;
 		}
@@ -215,7 +245,7 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 	}
 
 	private static final String QRY_JGCC_NULLPREV="select id, scode, lx, CGChange,ltzb,Count,ShareHDNum,ClosePrice from jgcc where rdate=? and PrevRDate is null";
-    private List<Map<String, Object>> queryJgccWithNullPreRDate(Date rptDate){
+    private List<Map<String, Object>> queryJgccWithNullPrevRDate(Date rptDate){
     	try {
     		return db.queryForList(QRY_JGCC_NULLPREV, new Object[] {rptDate}, 
     				new int[] {Types.DATE});
@@ -234,9 +264,9 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 		
 		if(!"新进".equals(cGChange)) {
 			prevItem = queryJgccData(prevRDate, scode, lx);
-			if(prevItem==null) {
-				return ;
-			}
+			//if(prevItem==null) {
+			//	return;  数据不完整时，用于留后处理，数据完整了，可去掉；
+			//}
 		}
 		
 		updateJgccWithNullPrevRDate(reportDate, scode, lx, shareHDNum, ltzb, closePrice, prevRDate, prevItem);
@@ -260,6 +290,7 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 	private void updateJgccWithNullPrevRDate(Date reportDate, String scode, int lx, double shareHDNum, double ltzb, double closePrice, Date prevRDate, Map<String, Object> prevItem) {
 		double prevHDNum = 0;
 		double PrevLTZB=0;
+		
 		String CGChange = "新进";
 		
 		if(prevItem != null) {
@@ -292,6 +323,47 @@ public class JgccPersistentServiceImpl extends PersistentServiceImpl implements 
 		}
 	}
 
+
+
+	private void restJgcc() {
+		// 避免锁表，逐条更新
+		while(resetData(1000)==1000);
+	}
+
+	private int resetData(int pageSize) {
+		List<Integer> rowids = queryNnullData(pageSize);
+		for(Integer rowid:rowids) {
+			setNullData(rowid);
+		}
+		return rowids.size();
+	}
+
+	private static final String QRY_NNUL_PREV = "select id from jgcc where (PrevRDate is not null) or (EndTradeDate is not null) limit ?";
+	private List<Integer> queryNnullData(int pageSize) {
+		try {
+			return db.queryForList(QRY_NNUL_PREV,
+					new Object[] {pageSize},
+					new int[] {Types.INTEGER},
+					Integer.class);
+		}catch(EmptyResultDataAccessException e) {
+		   return new ArrayList<>();
+		}catch(Exception e) {
+		   logger.error("",e);
+		   return new ArrayList<>();
+		}
+	}
+	
+	private static final String UPD_NNUL_DATA = "update jgcc set PrevRDate=null, EndTradeDate=null where id= ?";
+	private void setNullData(Integer rowid) {
+		try {
+			 db.update(UPD_NNUL_DATA,
+					new Object[] {rowid},
+					new int[] {Types.INTEGER});
+		}catch(Exception e) {
+		   logger.error("",e);
+		}
+	}
+	
 	
 	
 }

@@ -62,7 +62,7 @@ public class StockUtil {
 	}	
 	
 	/*
-	 * closed : 已经收市
+	 * closed : 已经收市，排除法定节假日，
 	 */
 	public static Date getLastTransDate(boolean closed) {
 		Calendar calendar = Calendar.getInstance();
@@ -70,8 +70,8 @@ public class StockUtil {
 		
 		if(closed) {
 			int hour = calendar.get(Calendar.HOUR_OF_DAY);
-			if(hour>0 && hour<15) {
-				calendar.add(Calendar.DATE, -1);
+			if(hour<15) {
+			   calendar.add(Calendar.DATE, -1);
 			}
 		}
 		

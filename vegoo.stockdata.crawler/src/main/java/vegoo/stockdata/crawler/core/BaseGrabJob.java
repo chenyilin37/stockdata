@@ -1,4 +1,4 @@
-package vegoo.stockdata.crawler.eastmoney;
+package vegoo.stockdata.crawler.core;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -32,8 +32,6 @@ import com.google.common.base.Strings;
 import vegoo.commons.JsonUtil;
 import vegoo.commons.MyThreadPoolExecutor;
 import vegoo.stockdata.core.BaseJob;
-import vegoo.stockdata.crawler.core.HttpClient;
-import vegoo.stockdata.crawler.core.HttpRequestException;
 
 /*
  * 错误代码段分配你
@@ -63,9 +61,9 @@ public abstract class BaseGrabJob extends BaseJob{
 		try {
 			content = httpClient.syncRequest(url, 3);
 		} catch (HttpRequestException e) {
-			logger.error("{}//{}//HTTP错误: 代码：{},可能是网站API有变化，请根据下列url检查,URL如下: {}", requestCode, this.getClass().getSimpleName(),e.getResponseCode(), url);
+			logger.error("{}:HttpRequestException: code={}:{},可能是网站API有变化，请根据下列URL检查: {}", requestCode,e.getResponseCode(),e.getMessage(), url);
 		} catch (IOException e) {
-			logger.error("{}//{}//HTTP错误: 可能是网络有问题或网站API有变化，请根据下列url检查,URL如下: {}", requestCode, this.getClass().getSimpleName(),url);
+			logger.error("{}//IOException:{}// 可能是网络有问题或网站API有变化，请根据下列URL检查: {}", requestCode, e.getMessage(),url);
 		}
 		
 		return content;

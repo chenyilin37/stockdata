@@ -41,37 +41,57 @@ public class ProcessDataJob extends BaseJob implements Job, ManagedService{
 	private static final Logger logger = LoggerFactory.getLogger(ProcessDataJob.class);
 
 	private static final String PN_BLOCKED   = "blocked";
+	private static final String PN_RESET_GDHS   = "reset-gdhs";
+	private static final String PN_RESET_JGCC   = "reset-jgcc";
+	private static final String PN_RESET_JGCCMX   = "reset-jgccmx";
+	private static final String PN_RESET_SDLTGD   = "reset-sdltgd";
+	private static final String PN_RESET_FHSG   = "reset-fhsg";
 
     @Reference private JdbcService db;
-
+    
     @Reference private GdhsPersistentService dbGdhs;
     @Reference private JgccPersistentService dbJgcc;
     @Reference private JgccmxPersistentService dbJgccmx;
     @Reference private SdltgdPersistentService dbSdltgd;
-
+    @Reference private FhsgPersistentService dbFhsg;
+    
     private boolean blocked = false;
+    
+    private boolean resetGdhs = false;
+    private boolean resetJgcc = false;
+    private boolean resetJgccmx = false;
+    private boolean resetSdltgd = false;
+    private boolean resetFhsg = false;
+ 
 
 	private Future<?> futureGdhs;
-
 	private Future<?> futureJgcc;
-
 	private Future<?> futureJgccmx;
-
 	private Future<?> futureSdltgd;
+	private Future<?> futureFhsg;
     
     @Override
 	public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
 		/* ！！！本函数内不要做需要长时间才能完成的工作，否则，会影响其他BUNDLE的初始化！！！  */
 
-    	String pv = (String) properties.get(PN_BLOCKED);
-    	
-    	blocked = "true".equalsIgnoreCase(pv) ;
+		blocked = "true".equalsIgnoreCase((String) properties.get(PN_BLOCKED)) ;
+		
+		resetGdhs = "true".equalsIgnoreCase((String) properties.get(PN_RESET_GDHS)) ;
+		resetJgcc = "true".equalsIgnoreCase((String) properties.get(PN_RESET_JGCC)) ;
+		resetJgccmx = "true".equalsIgnoreCase((String) properties.get(PN_RESET_JGCCMX)) ;
+		resetSdltgd = "true".equalsIgnoreCase((String) properties.get(PN_RESET_SDLTGD)) ;
+		resetFhsg = "true".equalsIgnoreCase((String) properties.get(PN_RESET_FHSG)) ;
+				
     }
 
 	@Override
 	protected void executeJob(JobContext context) {
 		if(blocked) {
 			return;
+		}
+		
+		if((futureFhsg == null) || (futureFhsg.isCancelled()||futureFhsg.isDone())){
+			processFhsg();
 		}
 		
 		if((futureJgccmx == null) || (futureJgccmx.isCancelled()||futureJgccmx.isDone())){
@@ -91,16 +111,30 @@ public class ProcessDataJob extends BaseJob implements Job, ManagedService{
 		}
 	}
 	
+	private void processFhsg() {
+		futureFhsg = asyncExecute(new Runnable() {
+			@Override
+			public void run() {
+				logger.info("process Fhsg.....");
+				try {
+					dbFhsg.settleFhsg(resetFhsg);
+				}finally {
+					futureFhsg = null;
+					resetFhsg=false;
+				}
+			}}) ;				
+	}
+
 	private void processGdhs() {
-		
 		futureGdhs = asyncExecute(new Runnable() {
 			@Override
 			public void run() {
 				logger.info("process Gdhs.....");
 				try {
-					dbGdhs.settleGdhs();
+					dbGdhs.settleGdhs(resetGdhs);
 				}finally {
 					futureGdhs = null;
+					resetGdhs = false;
 				}
 			}}) ;		
 	}
@@ -111,41 +145,40 @@ public class ProcessDataJob extends BaseJob implements Job, ManagedService{
 			public void run() {
 				logger.info("process Sdltgd.....");
 				try {
-					dbSdltgd.setdbSdltgd();
+					dbSdltgd.settleSdltgd(resetSdltgd);
 				}finally{
 					futureSdltgd = null;
+					resetSdltgd = false;
 				}
 			}}) ;
 	}
 
 	private void processJgccmx() {
-		
 		futureJgccmx = asyncExecute(new Runnable() {
 			@Override
 			public void run() {
 				logger.info("process JgccMX.....");
 				try {
-					dbJgccmx.settleJgccmx();
+					dbJgccmx.settleJgccmx(resetJgccmx);
 				}finally {
 					futureJgccmx = null;
+					resetJgccmx = false;
 				}
 			}}) ;		
 	}
 
 	private void processJgcc() {
-		
 		futureJgcc = asyncExecute(new Runnable() {
 			@Override
 			public void run() {
 				logger.info("process Jgcc.....");
 				try {
-					dbJgcc.settleJgcc();
+					dbJgcc.settleJgcc(resetJgcc);
 				}finally {
 					futureJgcc = null;
+					resetJgcc = false;
 				}
 			}}) ;
 	}
-
-
 
 }

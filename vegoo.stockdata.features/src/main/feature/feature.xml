@@ -34,6 +34,7 @@
         <feature>pax-jdbc-config</feature>
         <feature>pax-jdbc-mysql</feature>
         <feature>pax-jdbc-pool-c3p0</feature>
+        
 
         <bundle dependency="true">mvn:redis.clients/jedis/2.9.0</bundle>
         <bundle dependency="true">mvn:org.apache.commons/commons-pool2/2.4.3</bundle>

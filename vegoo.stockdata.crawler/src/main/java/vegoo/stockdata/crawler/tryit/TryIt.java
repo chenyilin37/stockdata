@@ -1,6 +1,7 @@
 package vegoo.stockdata.crawler.tryit;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -12,10 +13,11 @@ import vegoo.stockdata.crawler.eastmoney.jgcc.SdltgdDto;
 public class TryIt {
 
 	public static void main(String[] args) {
-		String s="-";
-		System.out.println("-".equals(s.trim())?"0":s.replaceAll("%", ""));
-		s="1.44%";
-		System.out.println("-".equals(s.trim())?"0":s.replaceAll("%", ""));
+		Date now = new Date();
+		String s =String.format("d-%tF", now);
+		
+		System.out.println(s);
+		System.out.println(s.hashCode());		
 	}
 	
 	private static void trySdltgfDto() {

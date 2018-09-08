@@ -1,4 +1,4 @@
-package vegoo.stockdata.crawler.eastmoney;
+package vegoo.stockdata.crawler.core;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
