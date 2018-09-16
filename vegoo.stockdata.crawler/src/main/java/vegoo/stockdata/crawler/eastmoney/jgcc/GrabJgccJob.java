@@ -31,8 +31,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import com.google.common.base.Strings;
 
 import vegoo.commons.JsonUtil;
-import vegoo.jdbcservice.JdbcService;
-import vegoo.stockdata.core.utils.StockUtil;
+import vegoo.stockcommon.utils.StockUtil;
 import vegoo.stockdata.crawler.core.ReportDataGrabJob;
 import vegoo.stockdata.db.GudongPersistentService;
 import vegoo.stockdata.db.JgccPersistentService;

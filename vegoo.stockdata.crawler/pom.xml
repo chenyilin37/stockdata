@@ -24,8 +24,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-	    <artifactId>stockdata</artifactId>
-	    <groupId>vegoo.newstock</groupId>
+	    <artifactId>parent</artifactId>
+	    <groupId>vegoo.stockdata</groupId>
 	    <version>1.0.0-SNAPSHOT</version>
 	  </parent>
 
@@ -56,18 +56,13 @@
             <version>${karaf.version}</version>
         </dependency>
    		<dependency>
-			<groupId>vegoo.newstock</groupId>
+			<groupId>vegoo.stockdata</groupId>
 			<artifactId>vegoo.stockdata.core</artifactId>
 			<version>${pom.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>vegoo.newstock</groupId>
+			<groupId>vegoo.stockdata</groupId>
 			<artifactId>vegoo.stockdata.db</artifactId>
-			<version>${pom.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>vegoo.newstock</groupId>
-			<artifactId>vegoo.commons</artifactId>
 			<version>${pom.version}</version>
 		</dependency>
     </dependencies>

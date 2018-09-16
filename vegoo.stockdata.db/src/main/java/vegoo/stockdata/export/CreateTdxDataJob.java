@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
-import vegoo.jdbcservice.JdbcService;
-import vegoo.stockdata.core.utils.StockUtil;
+import vegoo.commons.jdbc.JdbcService;
+import vegoo.stockcommon.utils.StockUtil;
 
 @Component (
 		immediate = true, 
@@ -183,7 +183,7 @@ public class CreateTdxDataJob extends ExportDataJob implements Job, ManagedServi
 	 * d.HolderNumChangeRate<1000 剔除新股上市时股东变化
 	 */
 	private static final String SQL_NewChangeRate = 
-			"SELECT CONCAT_WS('|', left(d.stockcode,1)='6', d.stockcode, DATE_FORMAT(enddate,'%Y%m%d'), sum(d.HolderNumChangeRate))"
+			"SELECT CONCAT_WS('|', left(d.stockcode,1)='6', d.stockcode, DATE_FORMAT(?,'%Y%m%d'), sum(d.HolderNumChangeRate))"
 			+" FROM gdhs d where d.enddate>? and d.HolderNumChangeRate<1000 group by d.stockcode order by d.stockcode" ;
 	private void exportNewGdhs(String dataTitle, Date beginDate, JdbcService db) {
 		try {

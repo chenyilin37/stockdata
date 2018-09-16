@@ -11,8 +11,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 
 import vegoo.commons.MyThreadPoolExecutor;
-import vegoo.jdbcservice.JdbcService;
-import vegoo.redis.RedisService;
+import vegoo.commons.redis.RedisService;
+
 
 public abstract class PersistentServiceImpl implements PersistentService{
 	private static final Logger logger = LoggerFactory.getLogger(PersistentServiceImpl.class);

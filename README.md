@@ -3,24 +3,39 @@
   https://github.com/chenyilin37/redis-udf/blob/master/README.md
 
 ## Docker安装Karaf
-	docker pull mkroli/karaf   
+### 制作镜像
+    docker build -t goas/karaf:4.2.0 .
+
+### 安装Karaf
+	docker pull goas/karaf:4.2.0   
 	
-	docker run -d -t --name karaf \   
-	  -p 1099:1099 \   
-	  -p 8101:8101 \   
-	  -p 44444:44444 \   
-	  -v /Users/Shared/karaf/deploy:/deploy \   
-	  --restart=always
-	  mkroli/karaf   
+	docker run -d -t --name mackaraf \   
+	  -p 1099:1099 \
+	  -p 8101:8101 \
+	  -p 44444:44444 \
+	  -v /Users/Shared/karaf/deploy:/deploy \
+	  --restart=always \
+	  goas/karaf:4.2.0   
 	
 	运行karaf
 	  ssh -p8101 karaf@localhost   
 	  
 	  
 ## 应用安装说明
+### commons
 1、mvn clean install
-2、feature:repo-add mvn:vegoo.newstock/vegoo.stockdata.features/1.0.0-SNAPSHOT/xml/features
+2、feature:repo-add mvn:vegoo.commons/vegoo.commons.features/1.0.0-SNAPSHOT/xml/features
+3、feature:install vegoo-commons
+
+### stockdata
+1、mvn clean install
+2、feature:repo-add mvn:vegoo.stockdata/vegoo.stockdata.features/1.0.0-SNAPSHOT/xml/features
 3、feature:install stockdata
+
+### stockserver
+1、mvn clean install
+2、feature:repo-add mvn:vegoo.stockserver/vegoo.stockserver.features/1.0.0-SNAPSHOT/xml/features
+3、feature:install stockserver
 
 ## 离线安装
 1、制作KAR文件

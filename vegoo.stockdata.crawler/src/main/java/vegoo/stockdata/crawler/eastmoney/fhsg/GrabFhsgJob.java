@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Strings;
 
 import vegoo.commons.JsonUtil;
+import vegoo.stockcommon.utils.StockUtil;
 import vegoo.stockdata.core.model.FhsgItemDao;
-import vegoo.stockdata.core.utils.StockUtil;
 import vegoo.stockdata.crawler.core.ReportDataGrabJob;
 import vegoo.stockdata.db.FhsgPersistentService;
 import vegoo.stockdata.db.StockPersistentService;

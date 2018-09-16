@@ -32,7 +32,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import com.google.common.base.Strings;
 
 import vegoo.commons.JsonUtil;
-import vegoo.jdbcservice.JdbcService;
+
 import vegoo.stockdata.crawler.core.BaseGrabJob;
 import vegoo.stockdata.crawler.core.HttpClient;
 import vegoo.stockdata.crawler.core.HttpRequestException;

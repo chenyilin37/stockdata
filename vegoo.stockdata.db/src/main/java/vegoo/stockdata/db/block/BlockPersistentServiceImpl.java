@@ -19,8 +19,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
-import vegoo.jdbcservice.JdbcService;
-import vegoo.redis.RedisService;
+import vegoo.commons.jdbc.JdbcService;
+import vegoo.commons.redis.RedisService;
 import vegoo.stockdata.db.BlockPersistentService;
 import vegoo.stockdata.db.base.PersistentServiceImpl;
 import vegoo.stockdata.db.base.Redis;
@@ -148,13 +148,23 @@ public class BlockPersistentServiceImpl extends PersistentServiceImpl implements
     	}
     }
 
-	private static String SQL_NEW_BLKINFO = "insert into block(marketid,blkcode,blkname,blkucode,blktype) values (?,?,?,?,?)";
+	private static String SQL_NEW_BLKINFO = "insert into block(marketid,blkcode,blkname,blkucode,blktype,TypeId) values (?,?,?,?,?,?)";
     @Override
 	public void insertBlock(String blkType, String marketid, String blkCode, String blkname, String blkUCode) {
     	try {
+    	   int typeId = 0;	
+    	   if("BKHY".equalsIgnoreCase(blkType)) {  // 行业
+    		   typeId = 1;
+    	   }else if("BKGN".equalsIgnoreCase(blkType)) {//概念
+    		   typeId = 2;
+    	   }else if("BKDY".equalsIgnoreCase(blkType)) {//地域
+    		   typeId = 3;
+    	   }else if("BKBD".equalsIgnoreCase(blkType)) {//板别
+    		   typeId = 4;
+    	   }
     	   db.update( SQL_NEW_BLKINFO, 
-    			   new Object[] {marketid, blkCode, blkname, blkUCode, blkType}, 
-    			   new int[]{Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR});
+    			   new Object[] {marketid, blkCode, blkname, blkUCode, blkType, typeId}, 
+    			   new int[]{Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR, Types.INTEGER});
     	}catch(Exception e) {
     		logger.error("插入block记录出错：{}.{}.{}.{}/{}", marketid, blkCode, blkname, blkUCode, blkType);
     		logger.error("",e);

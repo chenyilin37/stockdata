@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 
-import vegoo.jdbcservice.JdbcService;
 import vegoo.stockdata.core.BaseJob;
 import vegoo.stockdata.db.FhsgPersistentService;
 import vegoo.stockdata.db.GdhsPersistentService;
@@ -47,8 +46,6 @@ public class ProcessDataJob extends BaseJob implements Job, ManagedService{
 	private static final String PN_RESET_SDLTGD   = "reset-sdltgd";
 	private static final String PN_RESET_FHSG   = "reset-fhsg";
 
-    @Reference private JdbcService db;
-    
     @Reference private GdhsPersistentService dbGdhs;
     @Reference private JgccPersistentService dbJgcc;
     @Reference private JgccmxPersistentService dbJgccmx;

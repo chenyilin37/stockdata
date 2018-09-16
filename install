@@ -1,2 +1,2 @@
-rm -fr ~/.m2/repository/vegoo
+rm -fr ~/.m2/repository/vegoo/stockdata
 mvn clean install

@@ -12,6 +12,7 @@ import org.apache.karaf.scheduler.JobContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import vegoo.commons.DateUtil;
 import vegoo.commons.MyThreadPoolExecutor;
 
 /*  log4j参数
@@ -86,21 +87,9 @@ public abstract class BaseJob {
 	}
 	
 	public static String formatDate(Date date, String format) {
-		SimpleDateFormat dateFormat = new SimpleDateFormat(format);
-		return dateFormat.format(date);
+		return DateUtil.formatDateTime(date, format);
 	}
 	
 
-	
-/*
- *    public static void main(String[] args) {
-	    String s = "2015-07-01,11.13,11.13,11.13,11.13,122,135741,-";
-	    String[] flds = split(s,",");
-		System.out.println(JsonUtil.toJson(flds));
-		String zhenfu = "-".equals(flds[7].trim())?"0":flds[7].replaceAll("%", "");
-		System.out.println(zhenfu);
-
-	}
-*/	
 			
 }

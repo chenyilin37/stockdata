@@ -3,8 +3,8 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>vegoo.newstock</groupId>
-    <artifactId>stockdata</artifactId>
+    <groupId>vegoo.stockdata</groupId>
+    <artifactId>parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -17,9 +17,6 @@
     </properties>
 
     <modules>
-	    <module>vegoo.commons</module>
-	    <module>vegoo.jdbcservice</module>
-	    <module>vegoo.redis</module>
 	    <module>vegoo.stockdata.core</module>
 	    <module>vegoo.stockdata.db</module>
 	    <module>vegoo.stockdata.crawler</module>
@@ -27,6 +24,16 @@
 	</modules>
 
     <dependencies>
+		<dependency>
+			<groupId>vegoo.commons</groupId>
+			<artifactId>vegoo.commons</artifactId>
+			<version>${pom.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>vegoo.stockcommons</groupId>
+			<artifactId>vegoo.stockcommon</artifactId>
+			<version>${pom.version}</version>
+		</dependency>
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.core</artifactId>

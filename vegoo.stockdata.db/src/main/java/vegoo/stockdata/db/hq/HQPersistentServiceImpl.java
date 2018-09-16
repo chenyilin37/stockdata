@@ -18,10 +18,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 
-import vegoo.jdbcservice.JdbcService;
-import vegoo.redis.RedisService;
+import vegoo.commons.jdbc.JdbcService;
+import vegoo.commons.redis.RedisService;
+import vegoo.stockcommon.utils.StockUtil;
 import vegoo.stockdata.core.model.KDayDao;
-import vegoo.stockdata.core.utils.StockUtil;
 import vegoo.stockdata.db.HQPersistentService;
 import vegoo.stockdata.db.base.PersistentServiceImpl;
 

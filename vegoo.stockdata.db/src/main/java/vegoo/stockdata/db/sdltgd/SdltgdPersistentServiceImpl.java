@@ -16,9 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 
-import vegoo.jdbcservice.JdbcService;
-import vegoo.redis.RedisService;
-import vegoo.stockdata.core.utils.StockUtil;
+import vegoo.commons.jdbc.JdbcService;
+import vegoo.commons.redis.RedisService;
+import vegoo.stockcommon.utils.StockUtil;
 import vegoo.stockdata.db.FhsgPersistentService;
 import vegoo.stockdata.db.HQPersistentService;
 import vegoo.stockdata.db.SdltgdPersistentService;
